@@ -3,6 +3,7 @@ import { UserAdapter } from "../adapter/UserAdapter.js";
 import { UserApplication } from "../../application/UserApplication.js";
 import { UserController } from "../controller/UserController.js";
 import { authenticateToken, authorizeRoles } from "../web/authMiddleware.js";
+import { loginLimiter, registerLimiter } from "../web/rateLimitMiddleware.js";
 
 
 const router = Router();
@@ -12,11 +13,11 @@ const userApp = new UserApplication(userAdapter);
 const userController = new UserController(userApp);
 
 //definicion de rutas para usuarios
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
     await userController.login(req, res);
 });
 
-router.post("/users", async (req, res) => {
+router.post("/users", registerLimiter, async (req, res) => {
     await userController.createUser(req, res);
 });
 

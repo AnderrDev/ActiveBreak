@@ -6,6 +6,7 @@ import { User } from "../../domain/User.js";
 import { loadEmail } from "../util/user-email-validation.js";
 import { loadLoginData } from "../util/user-validation.js";
 import { canAccess, forbidden, isAdmin } from "../web/authMiddleware.js";
+import { parseId } from "../util/id-validation.js";
 
 // Respuesta pública del usuario: nunca se expone el hash de la contraseña
 type UserResponse = Omit<User, "contrasena">;
@@ -41,7 +42,7 @@ export class UserController {
         return res.status(201).json({ message: "Usuario creado exitosamente", userId });
     }
     async updateUser(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "El id del usuario debe ser un formato válido" });
         }
@@ -68,7 +69,7 @@ export class UserController {
             .json({ message: "Usuario actualizado con éxito" })
     }
     async getUserById(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id)
+        const id = parseId(req.params.id)
         if (Number.isNaN(id)) return res.status(400).json({ error: "ID invalido" });
 
         if (!canAccess(req, id)) return forbidden(res);
@@ -99,7 +100,7 @@ export class UserController {
         return res.status(200).json(users.map(toUserResponse));
     }
     async deleteUser(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
         if (Number.isNaN(id)) return res.status(400).json({ error: "ID en el formato inválido" });
 
         if (!canAccess(req, id)) return forbidden(res);

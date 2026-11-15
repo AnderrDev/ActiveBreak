@@ -12,6 +12,8 @@ export type ReturnEnvironmentVars = {
     DB_PASSWORD: string;
     DB_NAME: string;
     JWT_SECRET: string;
+    CORS_ORIGINS: string[];
+    TRUST_PROXY: number;
 }
 
 type ValidationENvironmentVars = { // Estructura que almacena el resultado de validacion de las variables de entorno
@@ -33,6 +35,10 @@ function validateEnVars(vars: NodeJS.ProcessEnv): ValidationENvironmentVars {
             "string.min": "JWT_SECRET debe tener al menos 32 caracteres",
             "any.required": "JWT_SECRET es obligatorio",
         }),
+        // Orígenes permitidos separados por comas (p. ej. "http://localhost:5173,https://app.midominio.com")
+        CORS_ORIGINS: joi.string().allow("").default(""),
+        // Número de proxies inversos delante de la API (0 = conexión directa)
+        TRUST_PROXY: joi.number().integer().min(0).default(0),
     }).unknown(true); // Permite otras variables de entorno que no estén definidas en el esquema
     const { error, value } = envSchema.validate(vars);
     return { error, value }
@@ -53,7 +59,12 @@ const loadEnvVars = (): ReturnEnvironmentVars => {
         DB_USER: value.DB_USER,
         DB_PASSWORD: value.DB_PASSWORD,
         DB_NAME: value.DB_NAME,
-        JWT_SECRET: value.JWT_SECRET
+        JWT_SECRET: value.JWT_SECRET,
+        CORS_ORIGINS: String(value.CORS_ORIGINS)
+            .split(",")
+            .map(origin => origin.trim())
+            .filter(origin => origin.length > 0),
+        TRUST_PROXY: value.TRUST_PROXY
     }
 }
 

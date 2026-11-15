@@ -4,6 +4,7 @@ import { Recordatorio } from "../../domain/Recordatorio.js";
 import { loadRecordatorio } from "../util/recordatorio-validation.js";
 import { loadUpdateRecordatorioData } from "../util/recordatorio-update-validation.js";
 import { canAccess, forbidden } from "../web/authMiddleware.js";
+import { parseId } from "../util/id-validation.js";
 
 // Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
 export class RecordatorioController {
@@ -37,7 +38,7 @@ export class RecordatorioController {
         });
     }
     async getRecordatorioById(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -57,7 +58,7 @@ export class RecordatorioController {
     }
     async getRecordatoriosByUsuarioId(req: Request, res: Response): Promise<Response> {
         // el parámetro de la ruta es /recordatorios/user/:userId
-        const usuarioId = Number(req.params.userId);
+        const usuarioId = parseId(req.params.userId);
 
         if (Number.isNaN(usuarioId)) {
             return res.status(400).json({ error: "ID de usuario inválido" });
@@ -79,7 +80,7 @@ export class RecordatorioController {
         return res.status(200).json(recordatorios);
     }
     async updateRecordatorio(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -112,7 +113,7 @@ export class RecordatorioController {
         });
     }
     async deleteRecordatorio(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });

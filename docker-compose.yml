@@ -43,6 +43,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-activebreak}
       DB_NAME: ${DB_NAME:-activebreak}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio (mínimo 32 caracteres), defínelo en .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
     ports:
       - "${API_PORT_HOST:-3000}:3000"
     volumes:

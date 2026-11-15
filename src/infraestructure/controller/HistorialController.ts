@@ -3,6 +3,7 @@ import { HistorialApplication } from "../../application/HistorialApplication.js"
 import { HistorialActividad } from "../../domain/Historial.js";
 import { loadHistorial } from "../util/historial-validation.js";
 import { canAccess, forbidden } from "../web/authMiddleware.js";
+import { parseId } from "../util/id-validation.js";
 
 // Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
 export class HistorialController {
@@ -36,7 +37,7 @@ export class HistorialController {
     }
 
     async getHistorialById(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -61,7 +62,7 @@ export class HistorialController {
     }
 
     async getHistorialByUsuarioId(req: Request, res: Response): Promise<Response> {
-        const usuarioId = Number(req.params.usuarioId);
+        const usuarioId = parseId(req.params.usuarioId);
 
         if (Number.isNaN(usuarioId)) {
             return res.status(400).json({ error: "usuarioId inválido" });
@@ -75,7 +76,7 @@ export class HistorialController {
     }
 
     async getHistorialByPausaId(req: Request, res: Response): Promise<Response> {
-        const pausaId = Number(req.params.pausaId);
+        const pausaId = parseId(req.params.pausaId);
 
         if (Number.isNaN(pausaId)) {
             return res.status(400).json({ error: "pausaId inválido" });
@@ -87,7 +88,7 @@ export class HistorialController {
     }
 
     async deleteHistorial(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });

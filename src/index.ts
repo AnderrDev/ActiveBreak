@@ -8,11 +8,9 @@ const server = new serverBootstrap(app);
 (
     async () => {
         try {
-            const instances = [
-                connectDB(),
-                server.initialize()
-            ];
-            await Promise.all(instances);
+            // Primero la BD: el servidor no acepta peticiones hasta que la conexión está lista
+            await connectDB();
+            await server.initialize();
         } catch (error) {
             console.log("Error al iniciar la aplicacion ", error);
             process.exit(1);

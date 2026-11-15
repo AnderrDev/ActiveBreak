@@ -77,6 +77,8 @@ Completa el `.env`:
 | `DB_PASSWORD` | Contraseña de la BD |
 | `DB_NAME` | Nombre de la base de datos |
 | `JWT_SECRET` | Clave para firmar los tokens JWT (obligatoria, mínimo 32 caracteres) |
+| `CORS_ORIGINS` | Orígenes permitidos por CORS, separados por comas. Si está vacío, en `development` se permite cualquiera y en `production` ninguno |
+| `TRUST_PROXY` | Número de proxies inversos delante de la API (por defecto `0`); necesario para que el límite de peticiones use la IP real |
 
 ## Scripts
 
@@ -108,7 +110,7 @@ docker compose up --build
 | `docker compose logs -f api` | Ver logs de la API |
 | `docker compose down` | Detiene los contenedores (conserva los datos) |
 | `docker compose down -v` | Detiene y borra la base de datos |
-| `docker compose exec db psql -U activebreak activebreak` | Consola de PostgreSQL |
+| `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'` | Consola de PostgreSQL |
 
 Para una imagen de producción (compila a `dist/` y ejecuta con `node`): `docker build --target prod -t activebreak .`
 
@@ -154,6 +156,8 @@ Todas las rutas llevan el prefijo `/api` y requieren token, salvo las marcadas c
 
 Sin token se responde `401`; sin permisos, `403`.
 
+Límites por IP: `POST /login` admite 10 intentos fallidos cada 15 minutos y `POST /users`, 20 registros por hora. Al superarlos se responde `429`.
+
 Los errores siempre tienen el formato `{ "error": "mensaje" }`:
 
 | Código | Cuándo |
@@ -163,6 +167,7 @@ Los errores siempre tienen el formato `{ "error": "mensaje" }`:
 | 403 | Sin permisos sobre el recurso |
 | 404 | El recurso o la ruta no existen |
 | 409 | Conflicto, por ejemplo un correo ya registrado |
+| 429 | Demasiadas peticiones (login o registro) |
 | 500 | Error interno (sin detalles en la respuesta) |
 
 ### Usuarios

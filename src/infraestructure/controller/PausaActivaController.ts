@@ -3,6 +3,7 @@ import { PausaActivaApplication } from "../../application/PausaActivaApplication
 import { PausaActiva } from "../../domain/PausaActiva.js";
 import { loadPausaActiva } from "../util/pausa-activa-validation.js";
 import { loadUpdatePausaActiva } from "../util/pausa-activa-update-validation.js";
+import { parseId } from "../util/id-validation.js";
 
 // Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
 export class PausaActivaController {
@@ -32,7 +33,7 @@ export class PausaActivaController {
         });
     }
     async getByIdPausaActiva(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -55,7 +56,7 @@ export class PausaActivaController {
         return res.status(200).json(pausas);
     }
     async updatePausaActiva(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({
@@ -78,7 +79,7 @@ export class PausaActivaController {
         });
     }
     async deletePausaActiva(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({

@@ -1,4 +1,3 @@
-import { resolve } from "dns";
 import express from "express";
 import http from "http";
 import envs from '../config/environment-vars.js';
@@ -28,8 +27,8 @@ export class serverBootstrap {
                 })
 
                 .on("error", (err) => {
-                    console.log(`se ha generado un error${err}`);
-                    reject(false);
+                    console.log(`se ha generado un error: ${err}`);
+                    reject(err);
                 })
         });
     };

@@ -3,6 +3,7 @@ import { RecordatorioDiaApplication } from "../../application/RecordatorioDiaApp
 import { RecordatorioApplication } from "../../application/RecordatorioApplication.js";
 import { loadRecordatorioDia } from "../util/recordatorio-dia-validation.js";
 import { canAccess, forbidden } from "../web/authMiddleware.js";
+import { parseId } from "../util/id-validation.js";
 
 // Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
 export class RecordatorioDiaController {
@@ -47,7 +48,7 @@ export class RecordatorioDiaController {
     }
 
     async getById(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -72,7 +73,7 @@ export class RecordatorioDiaController {
     }
 
     async getByRecordatorioId(req: Request, res: Response): Promise<Response> {
-        const recordatorioId = Number(req.params.recordatorioId);
+        const recordatorioId = parseId(req.params.recordatorioId);
 
         if (Number.isNaN(recordatorioId)) {
             return res.status(400).json({ error: "ID inválido" });
@@ -87,7 +88,7 @@ export class RecordatorioDiaController {
     }
 
     async delete(req: Request, res: Response): Promise<Response> {
-        const id = Number(req.params.id);
+        const id = parseId(req.params.id);
 
         if (Number.isNaN(id)) {
             return res.status(400).json({ error: "ID inválido" });
