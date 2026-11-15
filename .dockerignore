@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vscode
+.claude
+.cursor
+CLAUDE.md
+AGENTS.md
+*.log
+*.pdf
+.DS_Store
+Dockerfile
+docker-compose*.yml

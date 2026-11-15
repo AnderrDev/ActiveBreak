@@ -112,6 +112,21 @@ docker compose up --build
 
 Para una imagen de producción (compila a `dist/` y ejecuta con `node`): `docker build --target prod -t activebreak .`
 
+## Docker
+
+`docker-compose.yml` levanta un entorno local con la API, con recarga automática, y PostgreSQL 16:
+
+```bash
+docker compose up --build
+```
+
+- La API queda en `http://localhost:3000/api` (puerto configurable con `API_PORT_HOST`).
+- PostgreSQL se publica solo en `127.0.0.1:5433` (configurable con `DB_PORT_HOST`).
+- `JWT_SECRET` debe estar definido en el `.env`. `DB_USER`, `DB_PASSWORD` y `DB_NAME` se leen del `.env` y, si faltan, valen `activebreak`.
+- `docker compose down` detiene los contenedores y conserva los datos; `docker compose down -v` también borra la base de datos.
+
+El `Dockerfile` tiene además una etapa `prod` (`docker build --target prod .`) que ejecuta `dist/index.js` con `NODE_ENV=production` y el usuario `node`. En producción `synchronize` está desactivado, así que las tablas deben existir antes.
+
 ## Autenticación
 
 1. Crea un usuario con `POST /api/users`. Siempre se crea con rol `usuario` y activo (el rol no se puede elegir al registrarse).
