@@ -18,8 +18,10 @@ export const AppDataSource = new DataSource({
     password: envs.DB_PASSWORD,
     database: envs.DB_NAME,
     schema: "public",
-    synchronize: true,
-    logging: true,
+    // synchronize altera el esquema automáticamente: NUNCA en producción (puede borrar columnas/datos)
+    synchronize: envs.NODE_ENV !== "production",
+    // No se registran las consultas: incluirían parámetros sensibles (hashes, correos)
+    logging: envs.NODE_ENV === "development" ? ["error", "warn", "schema"] : ["error"],
     entities: [
         User,
         PausaActiva,

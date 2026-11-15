@@ -8,6 +8,7 @@ import { HistorialActividad } from "../domain/Historial.js";
 import { HistorialPort } from "../domain/HistorialPort.js";
 import { UserPort } from "../domain/UserPort.js";
 import { PausaActivaPort } from "../domain/PausaActivaPort.js";
+import { NotFoundError, ValidationError } from "../domain/errors.js";
 
 export class HistorialApplication {
 
@@ -30,36 +31,36 @@ export class HistorialApplication {
         // validar usuario
         const user = await this.userPort.getUserById(historial.usuarioId);
         if (!user) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
 
         if (!user.activo) {
-            throw new Error("El usuario está inactivo");
+            throw new ValidationError("El usuario está inactivo");
         }
 
         // validar pausa
         const pausa = await this.pausaPort.getByIdPausaActiva(historial.pausaId);
         if (!pausa) {
-            throw new Error("La pausa activa no existe");
+            throw new NotFoundError("La pausa activa no existe");
         }
 
         if (!pausa.activo) {
-            throw new Error("La pausa activa está inactiva");
+            throw new ValidationError("La pausa activa está inactiva");
         }
 
         // validaciones de negocio
         if (historial.duracionReal < 0) {
-            throw new Error("La duración real no puede ser negativa");
+            throw new ValidationError("La duración real no puede ser negativa");
         }
 
         const margen = 5;
 
         if (historial.duracionReal > pausa.duracionMinutos + margen) {
-            throw new Error("La duración real excede el tiempo permitido para esta pausa");
+            throw new ValidationError("La duración real excede el tiempo permitido para esta pausa");
         }
 
         if (!historial.completado && historial.duracionReal > 0) {
-            throw new Error("No puede haber duración si no se completó la actividad");
+            throw new ValidationError("No puede haber duración si no se completó la actividad");
         }
 
         return this.port.createHistorial(historial);
@@ -77,7 +78,7 @@ export class HistorialApplication {
 
         const user = await this.userPort.getUserById(usuarioId);
         if (!user) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
 
         return this.port.getHistorialByUsuarioId(usuarioId);
@@ -87,7 +88,7 @@ export class HistorialApplication {
 
         const pausa = await this.pausaPort.getByIdPausaActiva(pausaId);
         if (!pausa) {
-            throw new Error("La pausa no existe");
+            throw new NotFoundError("La pausa no existe");
         }
 
         return this.port.getHistorialByPausaId(pausaId);
@@ -97,7 +98,7 @@ export class HistorialApplication {
 
         const existing = await this.port.getHistorialById(id);
         if (!existing) {
-            throw new Error("El historial no existe");
+            throw new NotFoundError("El historial no existe");
         }
 
         return this.port.deleteHistorial(id);

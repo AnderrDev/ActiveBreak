@@ -3,6 +3,7 @@ recordatorio_id NO existe en create/update (lo maneja relación)
 usuarioId si es importante en create/update (por la FK)
 */
 import joi from "joi";
+import { ValidationError } from "../../domain/errors.js";
 
 export type ReturnRecordatorioData = Partial<{
     usuarioId: number;
@@ -65,7 +66,7 @@ export const loadUpdateRecordatorioData = (data: any): ReturnRecordatorioData =>
 
     if (error) {
         const messages = error.details.map(d => d.message).join(", ");
-        throw new Error(messages);
+        throw new ValidationError(messages);
     }
 
     return value;

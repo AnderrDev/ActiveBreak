@@ -8,6 +8,7 @@ horaFin > horaInicio
 import { Recordatorio } from "../domain/Recordatorio.js";
 import { RecordatorioPort } from "../domain/RecordatorioPort.js";
 import { UserPort } from "../domain/UserPort.js";
+import { NotFoundError, ValidationError } from "../domain/errors.js";
 
 export class RecordatorioApplication {
 
@@ -29,11 +30,11 @@ export class RecordatorioApplication {
         const m = Number(parts[1]);
 
         if (Number.isNaN(h) || Number.isNaN(m)) {
-            throw new Error("Formato de hora inválido (HH:MM)");
+            throw new ValidationError("Formato de hora inválido (HH:MM)");
         }
 
         if (h < 0 || h > 23 || m < 0 || m > 59) {
-            throw new Error("Hora fuera de rango");
+            throw new ValidationError("Hora fuera de rango");
         }
 
         return h * 60 + m;
@@ -45,23 +46,23 @@ export class RecordatorioApplication {
         const user = await this.userPort.getUserById(recordatorio.usuarioId);
 
         if (!user) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
 
         if (!user.activo) {
-            throw new Error("El usuario está inactivo");
+            throw new ValidationError("El usuario está inactivo");
         }
 
         // validaciones de negocio
         if (recordatorio.frecuenciaMinutos <= 0) {
-            throw new Error("La frecuencia debe ser mayor a 0");
+            throw new ValidationError("La frecuencia debe ser mayor a 0");
         }
 
         if (
             this.toMinutes(recordatorio.horaFin) <=
             this.toMinutes(recordatorio.horaInicio)
         ) {
-            throw new Error("La hora fin debe ser mayor que la hora inicio");
+            throw new ValidationError("La hora fin debe ser mayor que la hora inicio");
         }
 
         return this.port.createRecordatorio(recordatorio);
@@ -84,7 +85,7 @@ export class RecordatorioApplication {
 
         const user = await this.userPort.getUserById(usuarioId);
         if (!user) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
 
         return this.port.getRecordatoriosByUsuarioId(usuarioId);
@@ -97,14 +98,14 @@ export class RecordatorioApplication {
         const existing = await this.port.getRecordatorioById(id);
 
         if (!existing) {
-            throw new Error("El recordatorio no existe");
+            throw new NotFoundError("El recordatorio no existe");
         }
 
         if (
             recordatorio.frecuenciaMinutos !== undefined &&
             recordatorio.frecuenciaMinutos <= 0
         ) {
-            throw new Error("La frecuencia debe ser mayor a 0");
+            throw new ValidationError("La frecuencia debe ser mayor a 0");
         }
 
         if (recordatorio.horaInicio || recordatorio.horaFin) {
@@ -113,7 +114,7 @@ export class RecordatorioApplication {
             const fin = recordatorio.horaFin ?? existing.horaFin;
 
             if (this.toMinutes(fin) <= this.toMinutes(inicio)) {
-                throw new Error("La hora fin debe ser mayor que la hora inicio");
+                throw new ValidationError("La hora fin debe ser mayor que la hora inicio");
             }
         }
 
@@ -123,11 +124,11 @@ export class RecordatorioApplication {
             const user = await this.userPort.getUserById(recordatorio.usuarioId);
 
             if (!user) {
-                throw new Error("El usuario no existe");
+                throw new NotFoundError("El usuario no existe");
             }
 
             if (!user.activo) {
-                throw new Error("El usuario está inactivo");
+                throw new ValidationError("El usuario está inactivo");
             }
         }
 
@@ -139,7 +140,7 @@ export class RecordatorioApplication {
         const existing = await this.port.getRecordatorioById(id);
 
         if (!existing) {
-            throw new Error("El recordatorio no existe");
+            throw new NotFoundError("El recordatorio no existe");
         }
 
         return this.port.deleteRecordatorio(id);

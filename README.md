@@ -49,7 +49,7 @@ usuarios ──< recordatorios ──< recordatorio_dias
 - **recordatorio_dias**: recordatorio, `dia_semana` (`lunes` … `domingo`).
 - **historial_actividad**: usuario, pausa, `fecha_hora`, `completado`, `duracion_real`.
 
-> TypeORM está configurado con `synchronize: true`, por lo que las tablas se crean automáticamente al arrancar (solo recomendado en desarrollo).
+> En `development` y `test`, TypeORM crea y actualiza las tablas automáticamente al arrancar (`synchronize`). En `production` esta opción se desactiva, así que las tablas deben existir antes del despliegue.
 
 ## Requisitos
 
@@ -69,6 +69,7 @@ Completa el `.env`:
 
 | Variable | Descripción |
 | --- | --- |
+| `NODE_ENV` | `development`, `production` o `test` (por defecto `development`) |
 | `PORT` | Puerto del servidor (obligatorio) |
 | `DB_HOST` | Host de PostgreSQL |
 | `DB_PORT` | Puerto de PostgreSQL (por defecto `5432`) |
@@ -86,6 +87,30 @@ Completa el `.env`:
 | `npm run star` | Ejecuta la versión compilada (`dist/index.js`) |
 
 El servidor queda disponible en `http://localhost:<PORT>/api`.
+
+## Ambiente local con Docker
+
+Levanta la API y PostgreSQL sin instalar nada más que Docker:
+
+```bash
+cp .env.example .env   # define al menos JWT_SECRET (openssl rand -hex 32)
+docker compose up --build
+```
+
+- API en `http://localhost:3000/api` (puerto configurable con `API_PORT_HOST`), con recarga automática al guardar archivos de `src/`.
+- PostgreSQL accesible desde tu máquina en `localhost:5433` (configurable con `DB_PORT_HOST`) con las credenciales `DB_USER` / `DB_PASSWORD` / `DB_NAME` del `.env` (por defecto `activebreak`).
+- Dentro de Docker la API se conecta a la BD por el host `db`; el `DB_HOST` del `.env` no se usa.
+- Los datos se guardan en el volumen `db-data`.
+
+| Comando | Descripción |
+| --- | --- |
+| `docker compose up -d --build` | Levanta todo en segundo plano |
+| `docker compose logs -f api` | Ver logs de la API |
+| `docker compose down` | Detiene los contenedores (conserva los datos) |
+| `docker compose down -v` | Detiene y borra la base de datos |
+| `docker compose exec db psql -U activebreak activebreak` | Consola de PostgreSQL |
+
+Para una imagen de producción (compila a `dist/` y ejecuta con `node`): `docker build --target prod -t activebreak .`
 
 ## Autenticación
 
@@ -113,6 +138,17 @@ Todas las rutas llevan el prefijo `/api` y requieren token, salvo las marcadas c
 - 🔒 = cualquier usuario autenticado
 
 Sin token se responde `401`; sin permisos, `403`.
+
+Los errores siempre tienen el formato `{ "error": "mensaje" }`:
+
+| Código | Cuándo |
+| --- | --- |
+| 400 | Datos inválidos o regla de negocio incumplida |
+| 401 | Sin token, token inválido o credenciales incorrectas |
+| 403 | Sin permisos sobre el recurso |
+| 404 | El recurso o la ruta no existen |
+| 409 | Conflicto, por ejemplo un correo ya registrado |
+| 500 | Error interno (sin detalles en la respuesta) |
 
 ### Usuarios
 

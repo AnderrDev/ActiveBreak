@@ -18,38 +18,38 @@ const recordatorioApp = new RecordatorioApplication(
 const recordatorioController = new RecordatorioController(recordatorioApp);
 
 
-router.post("/recordatorios", authenticateToken, (req, res) => {
-    recordatorioController.createRecordatorio(req, res);
+router.post("/recordatorios", authenticateToken, async (req, res) => {
+    await recordatorioController.createRecordatorio(req, res);
 });
 
 
-router.get("/recordatorios", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    recordatorioController.getAllRecordatorios(req, res);
+router.get("/recordatorios", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await recordatorioController.getAllRecordatorios(req, res);
 });
 
 
-router.get("/recordatorios/active", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    recordatorioController.getActiveRecordatorios(req, res);
+router.get("/recordatorios/active", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await recordatorioController.getActiveRecordatorios(req, res);
 });
 
 
-router.get("/recordatorios/:id", authenticateToken, (req, res) => {
-    recordatorioController.getRecordatorioById(req, res);
+router.get("/recordatorios/:id", authenticateToken, async (req, res) => {
+    await recordatorioController.getRecordatorioById(req, res);
 });
 
 
-router.get("/recordatorios/user/:userId", authenticateToken, (req, res) => {
-    recordatorioController.getRecordatoriosByUsuarioId(req, res);
+router.get("/recordatorios/user/:userId", authenticateToken, async (req, res) => {
+    await recordatorioController.getRecordatoriosByUsuarioId(req, res);
 });
 
 
-router.put("/recordatorios/:id", authenticateToken, (req, res) => {
-    recordatorioController.updateRecordatorio(req, res);
+router.put("/recordatorios/:id", authenticateToken, async (req, res) => {
+    await recordatorioController.updateRecordatorio(req, res);
 });
 
 
-router.delete("/recordatorios/:id", authenticateToken, (req, res) => {
-    recordatorioController.deleteRecordatorio(req, res);
+router.delete("/recordatorios/:id", authenticateToken, async (req, res) => {
+    await recordatorioController.deleteRecordatorio(req, res);
 });
 
 export default router;

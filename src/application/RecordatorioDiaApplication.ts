@@ -1,5 +1,6 @@
 import { RecordatorioDia } from "../domain/RecordatorioDia.js";
 import { RecordatorioDiaPort } from "../domain/RecordatorioDiaPort.js";
+import { NotFoundError, ValidationError } from "../domain/errors.js";
 
 export class RecordatorioDiaApplication {
 
@@ -12,11 +13,11 @@ export class RecordatorioDiaApplication {
     async createRecordatorioDia(recordatorioId: number, diaSemana: string[]): Promise<number[]> {
 
         if (!recordatorioId) {
-            throw new Error("El recordatorioId es obligatorio");
+            throw new ValidationError("El recordatorioId es obligatorio");
         }
 
         if (!diaSemana || diaSemana.length === 0) {
-            throw new Error("Debes enviar al menos un día");
+            throw new ValidationError("Debes enviar al menos un día");
         }
 
         const diasValidos = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
@@ -26,7 +27,7 @@ export class RecordatorioDiaApplication {
         for (const dia of diaSemana) {
 
             if (!diasValidos.includes(dia)) {
-                throw new Error(`Día inválido: ${dia}`);
+                throw new ValidationError(`Día inválido: ${dia}`);
             }
 
             const id = await this.port.createRecordatorioDia({ recordatorioId, diaSemana: dia as any });
@@ -48,7 +49,7 @@ export class RecordatorioDiaApplication {
     async getByRecordatorioId(recordatorioId: number): Promise<RecordatorioDia[]> {
 
         if (!recordatorioId) {
-            throw new Error("recordatorioId es obligatorio");
+            throw new ValidationError("recordatorioId es obligatorio");
         }
 
         return this.port.getByRecordatorioId(recordatorioId);
@@ -59,7 +60,7 @@ export class RecordatorioDiaApplication {
         const existing = await this.port.getById(id);
 
         if (!existing) {
-            throw new Error("El registro no existe");
+            throw new NotFoundError("El registro no existe");
         }
 
         return this.port.deleteRecordatorioDia(id);

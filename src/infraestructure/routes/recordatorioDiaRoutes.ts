@@ -26,24 +26,24 @@ const recordatorioDiaController = new RecordatorioDiaController(
     recordatorioApp
 );
 
-router.post("/recordatorio-dia", authenticateToken, (req, res) => {
-    recordatorioDiaController.createRecordatorioDia(req, res);
+router.post("/recordatorio-dia", authenticateToken, async (req, res) => {
+    await recordatorioDiaController.createRecordatorioDia(req, res);
 });
 
-router.get("/recordatorio-dia", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    recordatorioDiaController.getAll(req, res);
+router.get("/recordatorio-dia", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await recordatorioDiaController.getAll(req, res);
 });
 
-router.get("/recordatorio-dia/:id", authenticateToken, (req, res) => {
-    recordatorioDiaController.getById(req, res);
+router.get("/recordatorio-dia/:id", authenticateToken, async (req, res) => {
+    await recordatorioDiaController.getById(req, res);
 });
 
-router.get("/recordatorio-dia/recordatorio/:recordatorioId", authenticateToken, (req, res) => {
-    recordatorioDiaController.getByRecordatorioId(req, res);
+router.get("/recordatorio-dia/recordatorio/:recordatorioId", authenticateToken, async (req, res) => {
+    await recordatorioDiaController.getByRecordatorioId(req, res);
 });
 
-router.delete("/recordatorio-dia/:id", authenticateToken, (req, res) => {
-    recordatorioDiaController.delete(req, res);
+router.delete("/recordatorio-dia/:id", authenticateToken, async (req, res) => {
+    await recordatorioDiaController.delete(req, res);
 });
 
 export default router;

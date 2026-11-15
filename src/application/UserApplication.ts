@@ -7,6 +7,10 @@ import { User } from "../domain/User.js";
 import { UserPort } from "../domain/UserPort.js";
 import bcrypt from "bcryptjs";
 import { AuthApplication } from "./AuthApplication.js";
+import { ConflictError, NotFoundError, UnauthorizedError } from "../domain/errors.js";
+
+// Hash bcrypt (coste 12) de un valor aleatorio; solo sirve para igualar tiempos en el login
+const DUMMY_HASH = bcrypt.hashSync(Math.random().toString(36), 12);
 
 export class UserApplication {
     //Declarar atributo
@@ -19,18 +23,16 @@ export class UserApplication {
 
     async login(email: string, password: string): Promise<string> {
         const existUser = await this.port.getUserByEmail(email);
-        if (!existUser) {
-            throw new Error("Credenciales inválidas");
+
+        // Se compara SIEMPRE contra un hash (uno ficticio si el usuario no existe) para que
+        // el tiempo de respuesta no revele qué correos están registrados.
+        const passMatch = await bcrypt.compare(password, existUser?.contrasena ?? DUMMY_HASH);
+
+        // Mismo mensaje para correo inexistente, contraseña incorrecta o usuario inactivo
+        if (!existUser || !passMatch || !existUser.activo) {
+            throw new UnauthorizedError("Credenciales inválidas");
         }
-        //validar status
-        if (!existUser.activo) {
-            throw new Error("Usuario inactivo");
-        }
-        //comparar los password
-        const passMatch = await bcrypt.compare(password, existUser.contrasena);
-        if (!passMatch) {
-            throw new Error("Credenciales inválidas")
-        }
+
         const token = AuthApplication.generateToken({
             id: existUser.id,
             email: existUser.correo,
@@ -44,7 +46,7 @@ export class UserApplication {
         //Validaciones de negocio
         const existingUser = await this.port.getUserByEmail(user.correo);
         if (existingUser) {
-            throw new Error("El correo electrónico ya está registrado");
+            throw new ConflictError("El correo electrónico ya está registrado");
         }
         //Hasher la contraseña antes de guardar
         const hashedPassword = await bcrypt.hash(user.contrasena, 12);
@@ -68,13 +70,13 @@ export class UserApplication {
     async updateUser(id: number, user: Partial<User>): Promise<boolean> {
         const existingUser = await this.port.getUserById(id);
         if (!existingUser) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
 
         if (user.correo) {
             const emailTaken = await this.port.getUserByEmail(user.correo);
             if (emailTaken && emailTaken.id !== id) {
-                throw new Error("El correo electrónico ya está registrado por otro usuario");
+                throw new ConflictError("El correo electrónico ya está registrado por otro usuario");
             }
         }
 
@@ -90,7 +92,7 @@ export class UserApplication {
         //validaciones de negocio
         const existingUser = await this.port.getUserById(id);
         if (!existingUser) {
-            throw new Error("El usuario no existe");
+            throw new NotFoundError("El usuario no existe");
         }
         return this.port.deleteUser(id);
     }

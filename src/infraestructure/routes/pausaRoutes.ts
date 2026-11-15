@@ -13,33 +13,33 @@ const pausaController = new PausaActivaController(pausaApp);
 
 
 
-router.post("/pausas-activas", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    pausaController.createPausaActiva(req, res);
+router.post("/pausas-activas", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await pausaController.createPausaActiva(req, res);
 });
 
 
-router.get("/pausas-activas", authenticateToken, (req, res) => {
-    pausaController.getAllPausaActiva(req, res);
+router.get("/pausas-activas", authenticateToken, async (req, res) => {
+    await pausaController.getAllPausaActiva(req, res);
 });
 
 
-router.get("/pausas-activas/activas", authenticateToken, (req, res) => {
-    pausaController.getActivasPausaActiva(req, res);
+router.get("/pausas-activas/activas", authenticateToken, async (req, res) => {
+    await pausaController.getActivasPausaActiva(req, res);
 });
 
 
-router.get("/pausas-activas/:id", authenticateToken, (req, res) => {
-    pausaController.getByIdPausaActiva(req, res);
+router.get("/pausas-activas/:id", authenticateToken, async (req, res) => {
+    await pausaController.getByIdPausaActiva(req, res);
 });
 
 
-router.put("/pausas-activas/:id", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    pausaController.updatePausaActiva(req, res);
+router.put("/pausas-activas/:id", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await pausaController.updatePausaActiva(req, res);
 });
 
 
-router.delete("/pausas-activas/:id", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    pausaController.deletePausaActiva(req, res);
+router.delete("/pausas-activas/:id", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await pausaController.deletePausaActiva(req, res);
 });
 
 export default router;

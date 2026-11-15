@@ -1,4 +1,5 @@
 import joi from "joi";
+import { ValidationError } from "../../domain/errors.js";
 
 // Tipo de datos que devuelve la validación (todo opcional para update)
 export type ReturnUserData = Partial<{
@@ -73,7 +74,7 @@ export const loadUpdateUserData = (data: any): ReturnUserData => {
 
     if (error) {
         const messages = error.details.map(d => d.message).join(", ");
-        throw new Error(messages);
+        throw new ValidationError(messages);
     }
 
     return value;

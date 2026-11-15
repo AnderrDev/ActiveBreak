@@ -4,6 +4,7 @@ import pausaRoutes from "../routes/pausaRoutes.js";
 import recordatorioRoutes from "../routes/recordatorioRoutes.js"
 import HistorialRoutes from "../routes/HistorialRoutes.js"
 import recordatorioDiaRoutes from "../routes/recordatorioDiaRoutes.js"
+import { errorHandler, notFoundHandler } from "./errorMiddleware.js"
 
 class App {
 
@@ -28,6 +29,9 @@ class App {
           this.app.use("/api", recordatorioRoutes)
           this.app.use("/api", HistorialRoutes)
           this.app.use("/api", recordatorioDiaRoutes)
+          // Siempre al final: rutas inexistentes y manejo centralizado de errores
+          this.app.use(notFoundHandler)
+          this.app.use(errorHandler)
      }
      getApp() {
           return this.app;

@@ -1,7 +1,10 @@
 import joi from 'joi';
 import "dotenv/config";
 
+export type NodeEnv = "development" | "production" | "test";
+
 export type ReturnEnvironmentVars = {
+    NODE_ENV: NodeEnv;
     PORT: number;
     DB_HOST: string;
     DB_PORT: number;
@@ -18,6 +21,7 @@ type ValidationENvironmentVars = { // Estructura que almacena el resultado de va
 
 function validateEnVars(vars: NodeJS.ProcessEnv): ValidationENvironmentVars {
     const envSchema = joi.object({
+        NODE_ENV: joi.string().valid("development", "production", "test").default("development"),
         PORT: joi.number().required(),
         DB_HOST: joi.string().required(),
         DB_PORT: joi.number().default(5432),
@@ -42,6 +46,7 @@ const loadEnvVars = (): ReturnEnvironmentVars => {
     }
     const value = result.value;
     return {
+        NODE_ENV: value.NODE_ENV,
         PORT: value.PORT,
         DB_HOST: value.DB_HOST,
         DB_PORT: value.DB_PORT,

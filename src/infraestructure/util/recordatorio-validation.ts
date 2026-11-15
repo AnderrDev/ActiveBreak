@@ -1,4 +1,5 @@
 import joi from "joi";
+import { ValidationError } from "../../domain/errors.js";
 
 export type ReturnRecordatorio = {
     usuarioId: number;
@@ -83,7 +84,7 @@ export const loadRecordatorio = (data: any): ReturnRecordatorio => {
 
     if (result.error) {
         const messages = result.error.details.map(d => d.message).join(", ");
-        throw new Error(messages);
+        throw new ValidationError(messages);
     }
 
     return result.value;

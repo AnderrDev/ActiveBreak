@@ -21,28 +21,28 @@ const historialApp = new HistorialApplication(
 
 const historialController = new HistorialController(historialApp);
 
-router.post("/historial", authenticateToken, (req, res) => {
-    historialController.createHistorial(req, res);
+router.post("/historial", authenticateToken, async (req, res) => {
+    await historialController.createHistorial(req, res);
 });
 
-router.get("/historial", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    historialController.getAllHistorial(req, res);
+router.get("/historial", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await historialController.getAllHistorial(req, res);
 });
 
-router.get("/historial/usuario/:usuarioId", authenticateToken, (req, res) => {
-    historialController.getHistorialByUsuarioId(req, res);
+router.get("/historial/usuario/:usuarioId", authenticateToken, async (req, res) => {
+    await historialController.getHistorialByUsuarioId(req, res);
 });
 
-router.get("/historial/pausa/:pausaId", authenticateToken, authorizeRoles("admin"), (req, res) => {
-    historialController.getHistorialByPausaId(req, res);
+router.get("/historial/pausa/:pausaId", authenticateToken, authorizeRoles("admin"), async (req, res) => {
+    await historialController.getHistorialByPausaId(req, res);
 });
 
-router.get("/historial/:id", authenticateToken, (req, res) => {
-    historialController.getHistorialById(req, res);
+router.get("/historial/:id", authenticateToken, async (req, res) => {
+    await historialController.getHistorialById(req, res);
 });
 
-router.delete("/historial/:id", authenticateToken, (req, res) => {
-    historialController.deleteHistorial(req, res);
+router.delete("/historial/:id", authenticateToken, async (req, res) => {
+    await historialController.deleteHistorial(req, res);
 });
 
 export default router;

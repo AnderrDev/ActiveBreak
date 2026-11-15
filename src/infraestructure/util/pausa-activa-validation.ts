@@ -1,4 +1,5 @@
 import joi from "joi";
+import { ValidationError } from "../../domain/errors.js";
 
 export type ReturnPausaActiva = {
     nombre: string;
@@ -76,7 +77,7 @@ export const loadPausaActiva = (data: any): ReturnPausaActiva => {
 
     if (result.error) {
         const messages = result.error.details.map(d => d.message).join(", ");
-        throw new Error(messages);
+        throw new ValidationError(messages);
     }
 
     return result.value;

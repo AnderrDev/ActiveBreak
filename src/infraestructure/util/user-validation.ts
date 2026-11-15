@@ -1,6 +1,7 @@
 //Este archivo se encarga de validar los datos de entrada del usuario utilizando la librería Joi
 
 import joi from 'joi';
+import { ValidationError } from "../../domain/errors.js";
 
 export type ReturnUserData = {
     nombre: string;
@@ -80,17 +81,34 @@ export const loadUserData = (data: any): ReturnUserData => {
     if (result.error) {
         //Une todos los mensajes de error en una sola cadena separada por comas
         const messages = result.error.details.map(d => d.message).join(', ');
-        throw new Error(messages);
+        throw new ValidationError(messages);
     }
     return result.value;
 }
 
-export const loadLoginData = (data: any) => {
-    const { correo, contrasena } = data;
+export type ReturnLoginData = {
+    correo: string;
+    contrasena: string;
+};
 
-    if (!correo || !contrasena) {
-        throw new Error("correo y contraseña son obligatorios");
+// Login: solo se comprueba el tipo y la presencia; las reglas de formato de la
+// contraseña no se revelan aquí para no dar pistas a un atacante.
+const loginSchema = joi.object({
+    correo: joi.string().trim().email({ tlds: { allow: false } }).max(150).required(),
+    contrasena: joi.string().min(1).max(128).required(),
+}).unknown(false).messages({
+    "any.required": "correo y contraseña son obligatorios",
+    "string.empty": "correo y contraseña son obligatorios",
+    "string.base": "correo y contraseña deben ser texto",
+    "string.email": "El correo electrónico no es válido",
+    "string.max": "Credenciales inválidas",
+    "object.unknown": "Solo se permiten los campos correo y contraseña",
+});
+
+export const loadLoginData = (data: any): ReturnLoginData => {
+    const { error, value } = loginSchema.validate(data, { abortEarly: true, convert: true });
+    if (error) {
+        throw new ValidationError(error.details[0]?.message ?? "Datos de login inválidos");
     }
-
-    return { correo, contrasena };
+    return value;
 };
