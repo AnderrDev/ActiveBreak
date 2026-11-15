@@ -6,9 +6,7 @@ export type ReturnUserData = {
     nombre: string;
     correo: string;
     contrasena: string;
-    rol: "usuario" | "admin";
     nivel_salud: "bajo" | "medio" | "alto";
-    activo: boolean;
 }
 
 //almacenar el resultado de la validación de los datos de entrada del usuario
@@ -50,16 +48,14 @@ function validateUserData(data: any): validationUserData {
                 'string.pattern.base': 'La contraseña debe contener letras y números',
                 'string.empty': 'La es requerida',
             }),
-        rol: joi.string()
-            .valid("usuario", "admin")
-            .required()
-            .messages({
-                "string.base": "El rol debe ser un texto",
-                "any.only": "El rol debe ser 'usuario' o 'admin'",
-                "any.required": "El rol es obligatorio",
-            }),
-
-
+        // "rol" y "activo" NO se aceptan en el registro: los asigna el servidor
+        // (rol "usuario", activo true) para impedir que alguien se registre como admin.
+        rol: joi.forbidden().messages({
+            "any.unknown": "El rol no se puede asignar al registrarse",
+        }),
+        activo: joi.forbidden().messages({
+            "any.unknown": "El estado no se puede asignar al registrarse",
+        }),
         nivel_salud: joi.string()
             .valid("bajo", "medio", "alto")
             .required()
@@ -68,14 +64,6 @@ function validateUserData(data: any): validationUserData {
                 "any.only": "El nivel de salud debe ser 'bajo', 'medio' o 'alto'",
                 "any.required": "El nivel de salud es obligatorio",
             }),
-
-        activo: joi.boolean()
-            .required()
-            .messages({
-                "boolean.base": "El campo activo debe ser true  o false",
-                "any.required": "El campo activo es obligatorio",
-            }),
-
     }).unknown(false);
     const { error, value } = userSchema.validate(data,
         {

@@ -3,7 +3,7 @@ import { RecordatorioAdapter } from "../adapter/RecordatorioAdapter.js";
 import { RecordatorioApplication } from "../../application/RecordatorioApplication.js";
 import { RecordatorioController } from "../controller/RecordatorioController.js";
 import { UserAdapter } from "../adapter/UserAdapter.js";
-import { authenticateToken } from "../web/authMiddleware.js";
+import { authenticateToken, authorizeRoles } from "../web/authMiddleware.js";
 
 const router = Router();
 
@@ -23,12 +23,12 @@ router.post("/recordatorios", authenticateToken, (req, res) => {
 });
 
 
-router.get("/recordatorios", authenticateToken, (req, res) => {
+router.get("/recordatorios", authenticateToken, authorizeRoles("admin"), (req, res) => {
     recordatorioController.getAllRecordatorios(req, res);
 });
 
 
-router.get("/recordatorios/active", authenticateToken, (req, res) => {
+router.get("/recordatorios/active", authenticateToken, authorizeRoles("admin"), (req, res) => {
     recordatorioController.getActiveRecordatorios(req, res);
 });
 

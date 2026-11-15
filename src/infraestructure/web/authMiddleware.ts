@@ -1,22 +1,53 @@
 //es nuestro intermediario que se ejecuta antes de llegar a la ruta final, interceptar la peticion desde el cliente y validar qeu el token qeu trae es valido como lo pide el endpoint
 import { Request, Response, NextFunction } from "express";
 import { AuthApplication } from "../../application/AuthApplication.js";
+import { AuthPayload } from "../../domain/Auth.js";
+
+// Se extiende Request para tipar el usuario autenticado (sin usar "as any")
+declare global {
+    namespace Express {
+        interface Request {
+            user?: AuthPayload;
+        }
+    }
+}
 
 export function authenticateToken(req: Request, res: Response, next: NextFunction):
     void {
     const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-    if (!token) {
+    const [scheme, token] = authHeader?.split(" ") ?? [];
+    if (scheme !== "Bearer" || !token) {
         res.status(401).json({ error: "Error en autenticación" });
         return;
     }
 
     try {
-        const payload = AuthApplication.verifyToken(token);
-        (req as any).user = payload;
+        req.user = AuthApplication.verifyToken(token);
         next();
     } catch (error) {
-        res.status(403).json({ error: "Token inválido o expirado" })
+        res.status(401).json({ error: "Token inválido o expirado" })
         return;
     }
 }
+
+// Restringe la ruta a los roles indicados. Debe usarse después de authenticateToken.
+export function authorizeRoles(...roles: AuthPayload["rol"][]) {
+    return (req: Request, res: Response, next: NextFunction): void => {
+        if (!req.user || !roles.includes(req.user.rol)) {
+            res.status(403).json({ error: "No tienes permisos para realizar esta acción" });
+            return;
+        }
+        next();
+    };
+}
+
+// ---- Helpers de autorización para los controladores ----
+
+export const isAdmin = (req: Request): boolean => req.user?.rol === "admin";
+
+// true si el usuario autenticado es el dueño del recurso o es admin
+export const canAccess = (req: Request, ownerId: number): boolean =>
+    isAdmin(req) || req.user?.id === ownerId;
+
+export const forbidden = (res: Response): Response =>
+    res.status(403).json({ error: "No tienes permisos para acceder a este recurso" });

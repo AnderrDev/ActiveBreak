@@ -8,6 +8,7 @@ export type ReturnEnvironmentVars = {
     DB_USER: string;
     DB_PASSWORD: string;
     DB_NAME: string;
+    JWT_SECRET: string;
 }
 
 type ValidationENvironmentVars = { // Estructura que almacena el resultado de validacion de las variables de entorno
@@ -19,10 +20,15 @@ function validateEnVars(vars: NodeJS.ProcessEnv): ValidationENvironmentVars {
     const envSchema = joi.object({
         PORT: joi.number().required(),
         DB_HOST: joi.string().required(),
-        DB_PORT: joi.number().default(3306),
+        DB_PORT: joi.number().default(5432),
         DB_USER: joi.string().required(),
         DB_PASSWORD: joi.string().allow("").optional(),
         DB_NAME: joi.string().required(),
+        // Clave de firma JWT: obligatoria y con longitud mínima para evitar claves débiles
+        JWT_SECRET: joi.string().min(32).required().messages({
+            "string.min": "JWT_SECRET debe tener al menos 32 caracteres",
+            "any.required": "JWT_SECRET es obligatorio",
+        }),
     }).unknown(true); // Permite otras variables de entorno que no estén definidas en el esquema
     const { error, value } = envSchema.validate(vars);
     return { error, value }
@@ -41,7 +47,8 @@ const loadEnvVars = (): ReturnEnvironmentVars => {
         DB_PORT: value.DB_PORT,
         DB_USER: value.DB_USER,
         DB_PASSWORD: value.DB_PASSWORD,
-        DB_NAME: value.DB_NAME
+        DB_NAME: value.DB_NAME,
+        JWT_SECRET: value.JWT_SECRET
     }
 }
 

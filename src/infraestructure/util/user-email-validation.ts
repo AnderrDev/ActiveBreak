@@ -12,7 +12,8 @@ type ValidationEmail = {
 
 function validateEmail(data: any): ValidationEmail {
     const emailSchema = joi.object({
-        correo: joi
+        // la clave debe coincidir con el parámetro de la ruta /users/email/:email
+        email: joi
             .string()
             .email({ tlds: { allow: false } })
             .required()

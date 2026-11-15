@@ -33,7 +33,8 @@ export class UserApplication {
         }
         const token = AuthApplication.generateToken({
             id: existUser.id,
-            email: existUser.correo
+            email: existUser.correo,
+            rol: existUser.rol
         });
         return token
     }
