@@ -1,97 +1,119 @@
 /*
-EN ESTA CAPA ESTA:
-- Validaciones de Lógica de negocio
-- Están los SERVICIOS que se encargan de procesar la información, es decir, de realizar las operaciones necesarias para cumplir con los requerimientos del negocio.
+User use cases. The business rules live in domain/User.ts (UserRules);
+this service loads the data through the ports, applies the rules and persists.
+Passwords are hashed with bcrypt (cost 12) here, never in the controller or adapter.
 */
-import { User } from "../domain/User.js";
-import { UserPort } from "../domain/UserPort.js";
 import bcrypt from "bcryptjs";
+import { User, UserRules } from "../domain/User.js";
+import { UserPort } from "../domain/UserPort.js";
+import { OrganizationRules } from "../domain/Organization.js";
+import { OrganizationPort } from "../domain/OrganizationPort.js";
+import { NotFoundError, UnauthorizedError } from "../domain/errors.js";
 import { AuthApplication } from "./AuthApplication.js";
+import { appLock } from "./KeyedLock.js";
+
+const BCRYPT_COST = 12;
+
+// bcrypt hash of a random value; only used to equalize login timing
+const DUMMY_HASH = bcrypt.hashSync(Math.random().toString(36), BCRYPT_COST);
+
+// Changes that may remove an admin are serialized under this key
+const ADMINS_LOCK = "admins";
 
 export class UserApplication {
-    //Declarar atributo
     private port: UserPort;
+    private organizationPort: OrganizationPort;
 
-    //Declarar método constructor para inyectar la dependencia del puerto
-    constructor(port: UserPort) {
+    constructor(port: UserPort, organizationPort: OrganizationPort) {
         this.port = port;
+        this.organizationPort = organizationPort;
     }
 
     async login(email: string, password: string): Promise<string> {
-        const existUser = await this.port.getUserByEmail(email);
-        if (!existUser) {
-            throw new Error("Credenciales inválidas");
+        const user = await this.port.getUserByEmail(email);
+
+        // ALWAYS compare against a hash (a fake one if the user does not exist)
+        // so the response time does not reveal which emails are registered
+        const passwordMatches = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
+
+        // Same message for unknown email, wrong password or inactive account
+        if (!user || !passwordMatches || !user.active) {
+            throw new UnauthorizedError("Credenciales inválidas");
         }
-        //validar status
-        if (!existUser.activo) {
-            throw new Error("Usuario inactivo");
-        }
-        //comparar los password
-        const passMatch = await bcrypt.compare(password, existUser.contrasena);
-        if (!passMatch) {
-            throw new Error("Credenciales inválidas")
-        }
-        const token = AuthApplication.generateToken({
-            id: existUser.id,
-            email: existUser.correo
-        });
-        return token
+
+        return AuthApplication.generateToken({ id: user.id, email: user.email, role: user.role });
     }
 
-    //métodos 
     async createUser(user: Omit<User, "id">): Promise<number> {
-        //Validaciones de negocio
-        const existingUser = await this.port.getUserByEmail(user.correo);
-        if (existingUser) {
-            throw new Error("El correo electrónico ya está registrado");
-        }
-        //Hasher la contraseña antes de guardar
-        const hashedPassword = await bcrypt.hash(user.contrasena, 12);
-        user.contrasena = hashedPassword;
-        return this.port.createUser(user);
+        UserRules.assertEmailAvailable(await this.port.getUserByEmail(user.email));
+
+        const password = await bcrypt.hash(user.password, BCRYPT_COST);
+        return this.port.createUser({ ...user, password });
     }
+
     async getUserById(id: number): Promise<User | null> {
-        return await this.port.getUserById(id);
+        return this.port.getUserById(id);
     }
+
     async getUserByEmail(email: string): Promise<User | null> {
-        return await this.port.getUserByEmail(email);
+        return this.port.getUserByEmail(email);
     }
+
     async getAllUsers(): Promise<User[]> {
-        return await this.port.getAllUsers();
+        return this.port.getAllUsers();
     }
 
     async getActiveUsers(): Promise<User[]> {
-        return await this.port.getActiveUsers();
+        return this.port.getActiveUsers();
     }
 
-    async updateUser(id: number, user: Partial<User>): Promise<boolean> {
-        const existingUser = await this.port.getUserById(id);
-        if (!existingUser) {
-            throw new Error("El usuario no existe");
-        }
+    // actorId: id of the authenticated user making the change
+    async updateUser(id: number, changes: Partial<User>, actorId: number): Promise<boolean> {
+        return appLock.run(ADMINS_LOCK, async () => {
+            const target = await this.findUser(id);
 
-        if (user.correo) {
-            const emailTaken = await this.port.getUserByEmail(user.correo);
-            if (emailTaken && emailTaken.id !== id) {
-                throw new Error("El correo electrónico ya está registrado por otro usuario");
+            if (UserRules.affectsAdmin(target, changes)) {
+                UserRules.assertAdminChangeAllowed(target, actorId, {
+                    losesAdminRole: changes.role !== undefined && changes.role !== "admin",
+                    isDeactivated: changes.active === false,
+                }, await this.port.countActiveAdmins());
             }
-        }
 
-        if (user.contrasena) {
-            const hashedPassword = await bcrypt.hash(user.contrasena, 12);
-            user.contrasena = hashedPassword;
-        }
+            if (changes.organizationId !== undefined) {
+                OrganizationRules.assertAssignable(await this.organizationPort.getOrganizationById(changes.organizationId));
+            }
 
-        return this.port.updateUser(id, user);
+            if (changes.email !== undefined) {
+                UserRules.assertEmailAvailable(await this.port.getUserByEmail(changes.email), id);
+            }
+
+            const data = { ...changes };
+            if (data.password !== undefined) {
+                data.password = await bcrypt.hash(data.password, BCRYPT_COST);
+            }
+
+            return this.port.updateUser(id, data);
+        });
     }
 
-    async deleteUser(id: number): Promise<boolean> {
-        //validaciones de negocio
-        const existingUser = await this.port.getUserById(id);
-        if (!existingUser) {
-            throw new Error("El usuario no existe");
-        }
-        return this.port.deleteUser(id);
+    async deleteUser(id: number, actorId: number): Promise<boolean> {
+        return appLock.run(ADMINS_LOCK, async () => {
+            const target = await this.findUser(id);
+
+            if (UserRules.affectsAdmin(target, { active: false })) {
+                UserRules.assertAdminChangeAllowed(target, actorId, {
+                    losesAdminRole: false,
+                    isDeactivated: true,
+                }, await this.port.countActiveAdmins());
+            }
+
+            return this.port.deleteUser(id);
+        });
     }
 
+    private async findUser(id: number): Promise<User> {
+        const user = await this.port.getUserById(id);
+        if (!user) throw new NotFoundError("El usuario no existe");
+        return user;
+    }
 }

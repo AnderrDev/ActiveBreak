@@ -1,0 +1,69 @@
+# ActiveBreak with Docker Compose: PostgreSQL database + backend.
+#
+#   docker compose up --build    -> builds the backend image and starts everything
+#   docker compose up -d         -> starts in the background
+#   docker compose down          -> stops and removes the containers (data is kept)
+#   docker compose down -v       -> also deletes the database (it is recreated from database/init)
+#
+# Values are read from the .env file at the root (see .env.example).
+
+# Fixed project name: the same containers and volume regardless of the folder name
+name: activebreak
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: activebreak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-activebreak}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-activebreak}
+      POSTGRES_DB: ${DB_NAME:-activebreak}
+      # Same time zone as the backend, so now() and the dates of the goals match
+      TZ: ${TZ:-America/Bogota}
+      PGTZ: ${TZ:-America/Bogota}
+    ports:
+      # Host port : container port. Only on 127.0.0.1 so the database is not exposed to the network
+      - "127.0.0.1:${DB_PORT_HOST:-5433}:5432"
+    volumes:
+      # Scripts that create the tables and the initial data (only the first time)
+      - ./database/init:/docker-entrypoint-initdb.d
+      # Database data (survives docker compose down). Renamed when the schema changed to English
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    # "build" builds the image locally; "image" is its name. Without BACKEND_IMAGE it is a local
+    # name with no Docker Hub namespace, so "docker compose pull" never downloads a third-party image
+    build: .
+    image: ${BACKEND_IMAGE:-activebreak-backend:local}
+    container_name: activebreak-backend
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Time zone of the users (Colombia): "today" for the goals and the default date of the history
+      TZ: ${TZ:-America/Bogota}
+      # Inside the Docker network the database is reached by its service name ("db") on port 5432
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-activebreak}
+      DB_PASSWORD: ${DB_PASSWORD:-activebreak}
+      DB_NAME: ${DB_NAME:-activebreak}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in the .env file (at least 32 characters)}
+      # Browser origins allowed by CORS (the Angular frontend runs on 4200 by default)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
+    ports:
+      - "${API_PORT_HOST:-3000}:3000"
+
+volumes:
+  postgres-data:
