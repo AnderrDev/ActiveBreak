@@ -1,17 +1,17 @@
 import jwt from "jsonwebtoken";
 import { AuthPayload } from "../domain/Auth.js";
 
-// La clave se valida al arrancar (environment-vars.ts); aquí se lee en cada uso
-// para no depender del orden de carga de los módulos.
+// The secret is validated on startup (environment-vars.ts); here it is read on each use
+// so this module does not depend on the load order.
 const getSecret = (): string => {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-        throw new Error("JWT_SECRET no está configurado");
+        throw new Error("JWT_SECRET is not configured");
     }
     return secret;
 };
 
-// generación y verificación del token
+// Token generation and verification
 export class AuthApplication {
     static generateToken(payload: AuthPayload): string {
         return jwt.sign(payload, getSecret(), { algorithm: "HS256", expiresIn: "1h" });
@@ -24,11 +24,11 @@ export class AuthApplication {
             typeof decoded !== "object" ||
             typeof decoded.id !== "number" ||
             typeof decoded.email !== "string" ||
-            (decoded.rol !== "usuario" && decoded.rol !== "admin")
+            (decoded.role !== "user" && decoded.role !== "admin")
         ) {
-            throw new Error("Token con formato inválido");
+            throw new Error("Invalid token payload");
         }
 
-        return { id: decoded.id, email: decoded.email, rol: decoded.rol };
+        return { id: decoded.id, email: decoded.email, role: decoded.role };
     }
 }

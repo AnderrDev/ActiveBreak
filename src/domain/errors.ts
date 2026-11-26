@@ -1,6 +1,7 @@
 /*
-Errores de dominio: expresan QUÉ falló sin saber nada de HTTP.
-La traducción a códigos de estado la hace el middleware de errores (infraestructura).
+Domain errors: they describe WHAT went wrong without knowing anything about HTTP.
+The translation to status codes lives in the error middleware (infrastructure/web/errorMiddleware.ts).
+Messages are in Spanish because they reach the end user.
 */
 
 export class DomainError extends Error {
@@ -10,25 +11,25 @@ export class DomainError extends Error {
     }
 }
 
-// Datos de entrada o reglas de negocio no cumplidas.
-// "errores" guarda el detalle de cada dato inválido (por ejemplo, los mensajes de Joi).
+// Invalid input or a broken business rule.
+// "details" holds one message per invalid field (for example, the Joi messages).
 export class ValidationError extends DomainError {
-    readonly errores: string[];
+    readonly details: string[];
 
-    constructor(message: string, errores: string[] = []) {
+    constructor(message: string, details: string[] = []) {
         super(message);
-        this.errores = errores;
+        this.details = details;
     }
 }
 
-// El recurso solicitado (o uno referenciado) no existe
+// The requested (or referenced) resource does not exist
 export class NotFoundError extends DomainError { }
 
-// Conflicto con el estado actual (p. ej. correo ya registrado)
+// Conflict with the current state (duplicated value, business rule)
 export class ConflictError extends DomainError { }
 
-// Credenciales inválidas
+// Invalid credentials
 export class UnauthorizedError extends DomainError { }
 
-// Autenticado, pero sin permiso sobre el recurso
+// Authenticated, but without permission over the resource
 export class ForbiddenError extends DomainError { }

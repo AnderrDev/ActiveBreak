@@ -1,8 +1,8 @@
-// Datos del usuario autenticado que viajan dentro del token JWT
-import { User } from "./User.js";
+import { Role } from "./User.js";
 
+// Authenticated user data carried inside the JWT
 export interface AuthPayload {
     id: number;
     email: string;
-    rol: User["rol"];
+    role: Role;
 }

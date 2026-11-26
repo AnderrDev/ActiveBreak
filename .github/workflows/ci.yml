@@ -1,15 +1,19 @@
-# Integración y despliegue continuo (CI/CD) del backend de ActiveBreak.
+# Continuous integration and deployment (CI/CD) of the ActiveBreak backend.
 #
-# Se ejecuta en cada push a main:
-#   1. build-backend  (máquina Ubuntu de GitHub): instala, compila y publica la imagen en Docker Hub.
-#   2. deploy-backend (tu equipo como runner self-hosted): descarga la imagen nueva y reinicia el contenedor.
+#   - Every pull request to main: installs and compiles (no publishing).
+#   - Every push to main:
+#       1. build-backend  (GitHub Ubuntu machine): compiles and publishes the image on Docker Hub.
+#       2. deploy-backend (your machine as a self-hosted runner): pulls the new image and restarts the container.
 #
-# Requisitos en GitHub (Settings -> Secrets and variables -> Actions):
-#   Secrets:   DOCKER_USERNAME (usuario de Docker Hub) y DOCKER_TOKEN (access token de Docker Hub)
-#   Variables: DEPLOY_DIR (carpeta del proyecto en el equipo del runner, donde están docker-compose.yml y .env)
+# Requirements on GitHub (Settings -> Secrets and variables -> Actions):
+#   Secrets:   DOCKER_USERNAME (Docker Hub user) and DOCKER_TOKEN (Docker Hub access token)
+#   Variables: DEPLOY_DIR (project folder on the runner machine, where docker-compose.yml and .env are)
 name: CI/CD Backend ActiveBreak
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -18,38 +22,48 @@ jobs:
   build-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar código
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Instalar Node.js 24
+      - name: Install Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: npm ci
 
-      - name: Compilar TypeScript
+      - name: Compile TypeScript
         run: npm run build
 
-      - name: Login Docker Hub
+      - name: Build Docker image
+        run: docker build -t activebreak-backend:ci .
+
+      # Publishing only happens on push to main (pull requests are only checked)
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Construir imagen Docker
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/activebreak-backend:latest .
-
-      - name: Publicar imagen en Docker Hub
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/activebreak-backend:latest
+      - name: Publish image on Docker Hub
+        if: github.event_name == 'push'
+        run: |
+          docker tag activebreak-backend:ci ${{ secrets.DOCKER_USERNAME }}/activebreak-backend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/activebreak-backend:latest
 
   deploy-backend:
     needs: build-backend
+    if: github.event_name == 'push'
     runs-on: self-hosted
+    # The image name comes from the secret, not from the .env of the runner,
+    # so it always pulls the team's own image
+    env:
+      BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/activebreak-backend:latest
     steps:
-      - name: Actualizar contenedor backend
+      - name: Update backend container
         working-directory: ${{ vars.DEPLOY_DIR }}
         run: |
           docker compose pull backend
