@@ -6,5 +6,6 @@ export interface PausaActiva {
     descripcion?: string; //el ? indica que podria no venir
     duracionMinutos: number;
     intensidad: "baja" | "media" | "alta";
+    categoriaId?: number;
     activo: boolean;
 }

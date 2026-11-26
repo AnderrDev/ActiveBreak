@@ -1,5 +1,5 @@
 import joi from "joi";
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
 
 // Tipo de datos que devuelve la validación (todo opcional para update)
 export type ReturnUserData = Partial<{
@@ -9,22 +9,28 @@ export type ReturnUserData = Partial<{
     rol: "usuario" | "admin";
     nivel_salud: "bajo" | "medio" | "alto";
     activo: boolean;
+    organizacionId: number;
 }>;
 
 // Esquema de validación para UPDATE (todos opcionales)
 const updateUserSchema = joi.object({
     nombre: joi.string()
         .trim()
-        .min(3)
-        .pattern(/^[A-Za-zÁÉÍÓÚáéíóúÑñ]+(?:\s[A-Za-zÁÉÍÓÚáéíóúÑñ]+)?$/)
+        .min(5)
+        .max(150)
+        .pattern(/^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/)
         .messages({
             "string.base": "El nombre debe ser un texto",
             "string.empty": "El nombre no puede estar vacío",
-            "string.min": "El nombre debe tener al menos 3 caracteres",
+            "string.max": "El nombre debe tener entre 5 y 150 caracteres",
+            "string.min": "El nombre debe tener entre 5 y 150 caracteres",
             "string.pattern.base": "El nombre debe contener solo letras y espacios"
         }),
 
     correo: joi.string()
+        .trim()
+        .lowercase()
+        .max(150)
         .email({ tlds: { allow: false } })
         .messages({
             "string.email": "El correo electrónico no es válido",
@@ -32,12 +38,14 @@ const updateUserSchema = joi.object({
         }),
 
     contrasena: joi.string()
-        .min(6)
-        .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)
+        .min(8)
+        .max(64)
+        .pattern(/^(?=.*[A-Za-z])(?=.*\d)\S{8,64}$/)
         .messages({
-            "string.min": "La contraseña debe tener al menos 6 caracteres",
-            "string.pattern.base": "La contraseña debe contener letras y números",
-            "string.empty": "La contraseña no puede estar vacía"
+            "string.min": "La contraseña debe tener entre 8 y 64 caracteres",
+            "string.pattern.base": "La contraseña debe tener al menos una letra y un número, sin espacios",
+            "string.empty": "La contraseña no puede estar vacía",
+            "string.max": "La contraseña debe tener entre 8 y 64 caracteres"
         }),
 
     rol: joi.string()
@@ -60,6 +68,15 @@ const updateUserSchema = joi.object({
             "boolean.base": "El campo activo debe ser verdadero o falso",
         }),
 
+    organizacionId: joi.number()
+        .integer()
+        .positive()
+        .messages({
+            "number.base": "organizacionId debe ser un número",
+            "number.integer": "organizacionId debe ser un número entero",
+            "number.positive": "organizacionId debe ser mayor a 0",
+        }),
+
 })
     .min(1)
     .unknown(false);
@@ -73,8 +90,7 @@ export const loadUpdateUserData = (data: any): ReturnUserData => {
     });
 
     if (error) {
-        const messages = error.details.map(d => d.message).join(", ");
-        throw new ValidationError(messages);
+        throw validationErrorFrom(error);
     }
 
     return value;

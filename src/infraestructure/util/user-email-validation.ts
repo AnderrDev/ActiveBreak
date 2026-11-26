@@ -1,5 +1,5 @@
 import joi from 'joi';
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
 
 export type ReturnEmail = {
     email: string;
@@ -16,6 +16,8 @@ function validateEmail(data: any): ValidationEmail {
         // la clave debe coincidir con el parámetro de la ruta /users/email/:email
         email: joi
             .string()
+            .trim()
+            .lowercase()
             .email({ tlds: { allow: false } })
             .required()
             .messages({
@@ -23,7 +25,7 @@ function validateEmail(data: any): ValidationEmail {
                 "string.empty": " El correo electrónico no puede estar vacío",
             }),
     }).unknown(false);
-    const { error, value } = emailSchema.validate(data, { abortEarly: false });
+    const { error, value } = emailSchema.validate(data, { abortEarly: false, convert: true });
     return { error, value };
 }
 
@@ -31,8 +33,7 @@ function validateEmail(data: any): ValidationEmail {
 export const loadEmail = (data: any): ReturnEmail => {
     const result = validateEmail(data);
     if (result.error) {
-        const messages = result.error.details.map(d => d.message).join(', ');
-        throw new ValidationError(messages);
+        throw validationErrorFrom(result.error);
     }
     return result.value;
 }

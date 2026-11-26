@@ -4,6 +4,8 @@ import { HistorialApplication } from "../../application/HistorialApplication.js"
 import { HistorialController } from "../controller/HistorialController.js";
 import { UserAdapter } from "../adapter/UserAdapter.js";
 import { PausaActivaAdapter } from "../adapter/PausaActivaAdapter.js";
+import { MetaAdapter } from "../adapter/MetaAdapter.js";
+import { MetaApplication } from "../../application/MetaApplication.js";
 import { authenticateToken, authorizeRoles } from "../web/authMiddleware.js";
 
 const router = Router();
@@ -13,10 +15,14 @@ const historialAdapter = new HistorialAdapter();
 const userAdapter = new UserAdapter();
 const pausaAdapter = new PausaActivaAdapter();
 
+// El historial recalcula las metas del usuario cada vez que cambia
+const metaApp = new MetaApplication(new MetaAdapter(), userAdapter, historialAdapter);
+
 const historialApp = new HistorialApplication(
     historialAdapter,
     userAdapter,
-    pausaAdapter
+    pausaAdapter,
+    metaApp
 );
 
 const historialController = new HistorialController(historialApp);

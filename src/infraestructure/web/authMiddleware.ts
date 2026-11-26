@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthApplication } from "../../application/AuthApplication.js";
 import { AuthPayload } from "../../domain/Auth.js";
+import { fail } from "./response.js";
 
 // Se extiende Request para tipar el usuario autenticado (sin usar "as any")
 declare global {
@@ -17,7 +18,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     const authHeader = req.headers["authorization"];
     const [scheme, token] = authHeader?.split(" ") ?? [];
     if (scheme !== "Bearer" || !token) {
-        res.status(401).json({ error: "Error en autenticación" });
+        fail(res, 401, "Debes iniciar sesión: falta el token (Authorization: Bearer <token>)");
         return;
     }
 
@@ -25,7 +26,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
         req.user = AuthApplication.verifyToken(token);
         next();
     } catch (error) {
-        res.status(401).json({ error: "Token inválido o expirado" })
+        fail(res, 401, "Token inválido o expirado");
         return;
     }
 }
@@ -34,7 +35,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
 export function authorizeRoles(...roles: AuthPayload["rol"][]) {
     return (req: Request, res: Response, next: NextFunction): void => {
         if (!req.user || !roles.includes(req.user.rol)) {
-            res.status(403).json({ error: "No tienes permisos para realizar esta acción" });
+            fail(res, 403, "No tienes permisos para realizar esta acción");
             return;
         }
         next();
@@ -50,4 +51,4 @@ export const canAccess = (req: Request, ownerId: number): boolean =>
     isAdmin(req) || req.user?.id === ownerId;
 
 export const forbidden = (res: Response): Response =>
-    res.status(403).json({ error: "No tienes permisos para acceder a este recurso" });
+    fail(res, 403, "No tienes permisos para acceder a este recurso");

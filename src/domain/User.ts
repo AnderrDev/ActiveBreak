@@ -9,4 +9,5 @@ export interface User {
     rol: "usuario" | "admin";
     nivel_salud: "bajo" | "medio" | "alto";
     activo: boolean;
+    organizacionId?: number;
 }

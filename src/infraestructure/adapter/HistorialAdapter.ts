@@ -83,4 +83,15 @@ export class HistorialAdapter implements HistorialPort {
         await this.historialRepository.remove(existing);
         return true;
     }
+
+    async countCompletadasEnRango(usuarioId: number, desde: string, hasta: string): Promise<number> {
+        // Desde el inicio del día "desde" hasta el final del día "hasta"
+        return this.historialRepository
+            .createQueryBuilder("h")
+            .where("h.usuario_id = :usuarioId", { usuarioId })
+            .andWhere("h.completado = true")
+            .andWhere("h.fecha_hora >= CAST(:desde AS date)", { desde })
+            .andWhere("h.fecha_hora < CAST(:hasta AS date) + 1", { hasta })
+            .getCount();
+    }
 }

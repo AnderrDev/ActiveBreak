@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { CategoriaPausa } from "./CategoriaPausa.js";
 
 @Entity('pausas_activas')
 export class PausaActiva {
@@ -17,6 +18,16 @@ export class PausaActiva {
 
     @Column({ type: "enum", enum: ["baja", "media", "alta"] })
     intensidad!: "baja" | "media" | "alta";
+
+    // RELACIÓN: muchas pausas pertenecen a una categoría.
+    // Es nullable para no romper las pausas creadas antes de existir las categorías;
+    // las pausas nuevas la exigen en la validación.
+    @ManyToOne(() => CategoriaPausa, { nullable: true, onDelete: "RESTRICT" })
+    @JoinColumn({ name: "categoria_id" })
+    categoria!: CategoriaPausa | null;
+
+    @Column({ type: "int", nullable: true })
+    categoria_id!: number | null;
 
     @Column({ type: "boolean", default: true })
     activo!: boolean;

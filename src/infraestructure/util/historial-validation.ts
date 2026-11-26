@@ -1,5 +1,5 @@
 import joi from "joi";
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
 
 export type ReturnHistorial = {
     usuarioId: number;
@@ -57,11 +57,13 @@ function validateHistorial(data: any): ValidationHistorial {
         duracionReal: joi.number()
             .integer()
             .min(0)
+            .max(60)
             .required()
             .messages({
                 "number.base": "La duración debe ser un número",
                 "number.integer": "La duración debe ser un número entero",
                 "number.min": "La duración no puede ser negativa",
+                "number.max": "La duración real debe ser como máximo 60 minutos",
                 "any.required": "La duración es obligatoria",
             }),
 
@@ -83,8 +85,7 @@ export const loadHistorial = (data: any): ReturnHistorial => {
     const result = validateHistorial(data);
 
     if (result.error) {
-        const messages = result.error.details.map(d => d.message).join(", ");
-        throw new ValidationError(messages);
+        throw validationErrorFrom(result.error);
     }
 
     return result.value;

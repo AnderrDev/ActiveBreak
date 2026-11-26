@@ -3,7 +3,7 @@ recordatorio_id NO existe en create/update (lo maneja relación)
 usuarioId si es importante en create/update (por la FK)
 */
 import joi from "joi";
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
 
 export type ReturnRecordatorioData = Partial<{
     usuarioId: number;
@@ -26,11 +26,13 @@ const updateRecordatorioSchema = joi.object({
 
     frecuenciaMinutos: joi.number()
         .integer()
-        .positive()
+        .min(15)
+        .max(240)
         .messages({
             "number.base": "La frecuencia debe ser un número",
             "number.integer": "La frecuencia debe ser un entero",
-            "number.positive": "La frecuencia debe ser mayor a 0",
+            "number.min": "La frecuencia debe estar entre 15 y 240 minutos",
+            "number.max": "La frecuencia debe estar entre 15 y 240 minutos",
         }),
 
     horaInicio: joi.string()
@@ -65,8 +67,7 @@ export const loadUpdateRecordatorioData = (data: any): ReturnRecordatorioData =>
     });
 
     if (error) {
-        const messages = error.details.map(d => d.message).join(", ");
-        throw new ValidationError(messages);
+        throw validationErrorFrom(error);
     }
 
     return value;

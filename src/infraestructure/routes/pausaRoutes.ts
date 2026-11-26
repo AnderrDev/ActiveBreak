@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { PausaActivaAdapter } from "../adapter/PausaActivaAdapter.js";
+import { CategoriaPausaAdapter } from "../adapter/CategoriaPausaAdapter.js";
 import { PausaActivaApplication } from "../../application/PausaActivaApplication.js";
 import { PausaActivaController } from "../controller/PausaActivaController.js";
 import { authenticateToken, authorizeRoles } from "../web/authMiddleware.js";
@@ -8,7 +9,7 @@ const router = Router();
 
 // inicialización de capas
 const pausaAdapter = new PausaActivaAdapter();
-const pausaApp = new PausaActivaApplication(pausaAdapter);
+const pausaApp = new PausaActivaApplication(pausaAdapter, new CategoriaPausaAdapter());
 const pausaController = new PausaActivaController(pausaApp);
 
 

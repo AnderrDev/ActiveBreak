@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { PausaActivaApplication } from "../../application/PausaActivaApplication.js";
 import { PausaActiva } from "../../domain/PausaActiva.js";
-import { loadPausaActiva } from "../util/pausa-activa-validation.js";
+import { loadFiltrosCatalogo, loadPausaActiva } from "../util/pausa-activa-validation.js";
 import { loadUpdatePausaActiva } from "../util/pausa-activa-update-validation.js";
 import { parseId } from "../util/id-validation.js";
+import { created, fail, ok } from "../web/response.js";
 
-// Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
+// Las respuestas usan el formato estándar de web/response.ts.
+// Los errores (validación, no encontrado, etc.) los traduce el middleware global (web/errorMiddleware.ts)
 export class PausaActivaController {
 
     private app: PausaActivaApplication;
@@ -22,81 +24,56 @@ export class PausaActivaController {
             duracionMinutos: data.duracionMinutos,
             intensidad: data.intensidad,
             activo: data.activo,
+            categoriaId: data.categoriaId,
             ...(data.descripcion !== undefined && { descripcion: data.descripcion })
         };
 
         const id = await this.app.createPausaActiva(pausa);
 
-        return res.status(201).json({
-            message: "Pausa activa creada exitosamente",
-            id
-        });
+        return created(res, await this.app.getByIdPausaActiva(id), "Pausa activa creada exitosamente");
     }
+
     async getByIdPausaActiva(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const pausa = await this.app.getByIdPausaActiva(id);
+        if (!pausa) return fail(res, 404, "Pausa activa no encontrada");
 
-        if (!pausa) {
-            return res.status(404).json({ error: "Pausa activa no encontrada" });
-        }
-
-        return res.status(200).json(pausa);
+        return ok(res, pausa, "Pausa activa encontrada");
     }
+
     async getAllPausaActiva(req: Request, res: Response): Promise<Response> {
         const pausas = await this.app.getAllPausaActiva();
-        return res.status(200).json(pausas);
+        return ok(res, pausas, "Listado de pausas activas");
     }
+
     async getActivasPausaActiva(req: Request, res: Response): Promise<Response> {
-        const pausas = await this.app.getActivasPausaActiva();
-        return res.status(200).json(pausas);
+        // Filtros opcionales: ?categoriaId=1&intensidad=baja&duracionMax=10
+        const filtros = loadFiltrosCatalogo(req.query);
+        const pausas = await this.app.getActivasPausaActiva(filtros);
+        return ok(res, pausas, "Catálogo de pausas activas");
     }
+
     async updatePausaActiva(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({
-                error: "ID inválido"
-            });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const data = loadUpdatePausaActiva(req.body);
 
         const updated = await this.app.updatePausaActiva(id, data);
+        if (!updated) return fail(res, 404, "Pausa activa no encontrada");
 
-        if (!updated) {
-            return res.status(404).json({
-                error: "Pausa activa no encontrada o sin cambios"
-            });
-        }
-
-        return res.status(200).json({
-            message: "Pausa activa actualizada correctamente"
-        });
+        return ok(res, await this.app.getByIdPausaActiva(id), "Pausa activa actualizada correctamente");
     }
+
     async deletePausaActiva(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({
-                error: "ID inválido"
-            });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const deleted = await this.app.deletePausaActiva(id);
+        if (!deleted) return fail(res, 404, "Pausa activa no encontrada");
 
-        if (!deleted) {
-            return res.status(404).json({
-                error: "Pausa activa no encontrada"
-            });
-        }
-
-        return res.status(200).json({
-            message: "Pausa activa eliminada correctamente"
-        });
+        return ok(res, null, "Pausa activa eliminada correctamente");
     }
 }

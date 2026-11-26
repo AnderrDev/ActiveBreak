@@ -5,8 +5,10 @@ import { loadRecordatorio } from "../util/recordatorio-validation.js";
 import { loadUpdateRecordatorioData } from "../util/recordatorio-update-validation.js";
 import { canAccess, forbidden } from "../web/authMiddleware.js";
 import { parseId } from "../util/id-validation.js";
+import { created, fail, ok } from "../web/response.js";
 
-// Los errores (validación, no encontrado, etc.) los traduce a HTTP el middleware global (web/errorMiddleware.ts)
+// Las respuestas usan el formato estándar de web/response.ts.
+// Los errores (validación, no encontrado, etc.) los traduce el middleware global (web/errorMiddleware.ts)
 export class RecordatorioController {
 
     private app: RecordatorioApplication;
@@ -32,64 +34,49 @@ export class RecordatorioController {
 
         const id = await this.app.createRecordatorio(recordatorio);
 
-        return res.status(201).json({
-            message: "Recordatorio creado exitosamente",
-            id
-        });
+        return created(res, await this.app.getRecordatorioById(id), "Recordatorio creado exitosamente");
     }
+
     async getRecordatorioById(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const recordatorio = await this.app.getRecordatorioById(id);
-
-        if (!recordatorio) {
-            return res.status(404).json({
-                error: "Recordatorio no encontrado"
-            });
-        }
+        if (!recordatorio) return fail(res, 404, "Recordatorio no encontrado");
 
         if (!canAccess(req, recordatorio.usuarioId)) return forbidden(res);
 
-        return res.status(200).json(recordatorio);
+        return ok(res, recordatorio, "Recordatorio encontrado");
     }
+
     async getRecordatoriosByUsuarioId(req: Request, res: Response): Promise<Response> {
         // el parámetro de la ruta es /recordatorios/user/:userId
         const usuarioId = parseId(req.params.userId);
-
-        if (Number.isNaN(usuarioId)) {
-            return res.status(400).json({ error: "ID de usuario inválido" });
-        }
+        if (Number.isNaN(usuarioId)) return fail(res, 400, "ID de usuario inválido");
 
         if (!canAccess(req, usuarioId)) return forbidden(res);
 
-        const recordatorios =
-            await this.app.getRecordatoriosByUsuarioId(usuarioId);
+        const recordatorios = await this.app.getRecordatoriosByUsuarioId(usuarioId);
 
-        return res.status(200).json(recordatorios);
+        return ok(res, recordatorios, "Recordatorios del usuario");
     }
+
     async getAllRecordatorios(req: Request, res: Response): Promise<Response> {
         const recordatorios = await this.app.getAllRecordatorios();
-        return res.status(200).json(recordatorios);
+        return ok(res, recordatorios, "Listado de recordatorios");
     }
+
     async getActiveRecordatorios(req: Request, res: Response): Promise<Response> {
         const recordatorios = await this.app.getActiveRecordatorios();
-        return res.status(200).json(recordatorios);
+        return ok(res, recordatorios, "Listado de recordatorios activos");
     }
+
     async updateRecordatorio(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const existing = await this.app.getRecordatorioById(id);
-        if (!existing) {
-            return res.status(404).json({ error: "Recordatorio no encontrado" });
-        }
+        if (!existing) return fail(res, 404, "Recordatorio no encontrado");
 
         // Debe ser dueño del recordatorio y, si lo reasigna, también del usuario destino
         if (!canAccess(req, existing.usuarioId)) return forbidden(res);
@@ -101,41 +88,23 @@ export class RecordatorioController {
         }
 
         const updated = await this.app.updateRecordatorio(id, dataLoad);
+        if (!updated) return fail(res, 404, "Recordatorio no encontrado");
 
-        if (!updated) {
-            return res.status(404).json({
-                error: "Recordatorio no encontrado o sin cambios"
-            });
-        }
-
-        return res.status(200).json({
-            message: "Recordatorio actualizado correctamente"
-        });
+        return ok(res, await this.app.getRecordatorioById(id), "Recordatorio actualizado correctamente");
     }
+
     async deleteRecordatorio(req: Request, res: Response): Promise<Response> {
         const id = parseId(req.params.id);
-
-        if (Number.isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
-        }
+        if (Number.isNaN(id)) return fail(res, 400, "ID inválido");
 
         const existing = await this.app.getRecordatorioById(id);
-        if (!existing) {
-            return res.status(404).json({ error: "Recordatorio no encontrado" });
-        }
+        if (!existing) return fail(res, 404, "Recordatorio no encontrado");
 
         if (!canAccess(req, existing.usuarioId)) return forbidden(res);
 
         const deleted = await this.app.deleteRecordatorio(id);
+        if (!deleted) return fail(res, 404, "Recordatorio no encontrado");
 
-        if (!deleted) {
-            return res.status(404).json({
-                error: "Recordatorio no encontrado"
-            });
-        }
-
-        return res.status(200).json({
-            message: "Recordatorio eliminado correctamente"
-        });
+        return ok(res, null, "Recordatorio eliminado correctamente");
     }
 }

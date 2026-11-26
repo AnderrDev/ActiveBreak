@@ -17,4 +17,10 @@ export interface UserPort {
     getAllUsers(): Promise<User[]>;
 
     getActiveUsers(): Promise<User[]>;
+
+    // Reglas de negocio: siempre debe quedar un admin activo
+    countActiveAdmins(): Promise<number>;
+
+    // Reglas de negocio: no desactivar organizaciones con usuarios activos
+    countActiveByOrganizacion(organizacionId: number): Promise<number>;
 }

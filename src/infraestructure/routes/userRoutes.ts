@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserAdapter } from "../adapter/UserAdapter.js";
+import { OrganizacionAdapter } from "../adapter/OrganizacionAdapter.js";
 import { UserApplication } from "../../application/UserApplication.js";
 import { UserController } from "../controller/UserController.js";
 import { authenticateToken, authorizeRoles } from "../web/authMiddleware.js";
@@ -9,7 +10,7 @@ import { loginLimiter, registerLimiter } from "../web/rateLimitMiddleware.js";
 const router = Router();
 //inicializacion de las capas
 const userAdapter = new UserAdapter();
-const userApp = new UserApplication(userAdapter);
+const userApp = new UserApplication(userAdapter, new OrganizacionAdapter());
 const userController = new UserController(userApp);
 
 //definicion de rutas para usuarios

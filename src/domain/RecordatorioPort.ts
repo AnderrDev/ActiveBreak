@@ -15,4 +15,7 @@ export interface RecordatorioPort {
     getAllRecordatorios(): Promise<Recordatorio[]>;
 
     getActiveRecordatorios(): Promise<Recordatorio[]>;
+
+    // Regla de negocio: máximo de recordatorios activos por usuario
+    countActivosByUsuario(usuarioId: number): Promise<number>;
 }

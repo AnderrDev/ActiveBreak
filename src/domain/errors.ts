@@ -10,8 +10,16 @@ export class DomainError extends Error {
     }
 }
 
-// Datos de entrada o reglas de negocio no cumplidas
-export class ValidationError extends DomainError { }
+// Datos de entrada o reglas de negocio no cumplidas.
+// "errores" guarda el detalle de cada dato inválido (por ejemplo, los mensajes de Joi).
+export class ValidationError extends DomainError {
+    readonly errores: string[];
+
+    constructor(message: string, errores: string[] = []) {
+        super(message);
+        this.errores = errores;
+    }
+}
 
 // El recurso solicitado (o uno referenciado) no existe
 export class NotFoundError extends DomainError { }

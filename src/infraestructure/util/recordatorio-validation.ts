@@ -1,5 +1,5 @@
 import joi from "joi";
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
 
 export type ReturnRecordatorio = {
     usuarioId: number;
@@ -31,12 +31,14 @@ function validateRecordatorio(data: any): ValidationRecordatorio {
 
         frecuenciaMinutos: joi.number()
             .integer()
-            .positive()
+            .min(15)
+            .max(240)
             .required()
             .messages({
                 "number.base": "La frecuencia debe ser un número",
                 "number.integer": "La frecuencia debe ser un número entero",
-                "number.positive": "La frecuencia debe ser mayor a 0",
+                "number.min": "La frecuencia debe estar entre 15 y 240 minutos",
+                "number.max": "La frecuencia debe estar entre 15 y 240 minutos",
                 "any.required": "La frecuencia es obligatoria",
             }),
 
@@ -83,8 +85,7 @@ export const loadRecordatorio = (data: any): ReturnRecordatorio => {
     const result = validateRecordatorio(data);
 
     if (result.error) {
-        const messages = result.error.details.map(d => d.message).join(", ");
-        throw new ValidationError(messages);
+        throw validationErrorFrom(result.error);
     }
 
     return result.value;

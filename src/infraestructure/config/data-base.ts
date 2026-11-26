@@ -7,6 +7,9 @@ import { PausaActiva } from "../entities/PausaActiva.js";
 import { Recordatorio } from "../entities/Recordatorio.js";
 import { RecordatorioDia } from "../entities/RecordatorioDia.js";
 import { HistorialActividad } from "../entities/HistorialActividad.js";
+import { CategoriaPausa } from "../entities/CategoriaPausa.js";
+import { Organizacion } from "../entities/Organizacion.js";
+import { Meta } from "../entities/Meta.js";
 
 dotenv.config();
 
@@ -27,7 +30,10 @@ export const AppDataSource = new DataSource({
         PausaActiva,
         Recordatorio,
         RecordatorioDia,
-        HistorialActividad
+        HistorialActividad,
+        CategoriaPausa,
+        Organizacion,
+        Meta
 
     ],
 });

@@ -1,6 +1,6 @@
 import { RecordatorioDia } from "../domain/RecordatorioDia.js";
 import { RecordatorioDiaPort } from "../domain/RecordatorioDiaPort.js";
-import { NotFoundError, ValidationError } from "../domain/errors.js";
+import { ConflictError, NotFoundError, ValidationError } from "../domain/errors.js";
 
 export class RecordatorioDiaApplication {
 
@@ -21,6 +21,16 @@ export class RecordatorioDiaApplication {
         }
 
         const diasValidos = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+
+        // No se repiten días: ni dentro de la petición ni con los ya guardados
+        if (new Set(diaSemana).size !== diaSemana.length) {
+            throw new ValidationError("No se pueden repetir días en la misma petición");
+        }
+        const existentes = await this.port.getByRecordatorioId(recordatorioId);
+        const repetidos = existentes.map(d => d.diaSemana).filter(d => diaSemana.includes(d));
+        if (repetidos.length > 0) {
+            throw new ConflictError(`El recordatorio ya tiene los días: ${repetidos.join(", ")}`);
+        }
 
         const ids: number[] = [];
 

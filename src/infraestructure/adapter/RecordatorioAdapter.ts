@@ -103,4 +103,8 @@ export class RecordatorioAdapter implements RecordatorioPort {
 
         return recordatorios.map(r => this.toDomain(r));
     }
+
+    async countActivosByUsuario(usuarioId: number): Promise<number> {
+        return this.recordatorioRepository.count({ where: { usuario: { id: usuarioId }, activo: true } });
+    }
 }

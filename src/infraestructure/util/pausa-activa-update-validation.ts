@@ -1,5 +1,6 @@
 import joi from "joi";
-import { ValidationError } from "../../domain/errors.js";
+import { validationErrorFrom } from "./joi-error.js";
+import { NOMBRE_PAUSA } from "./pausa-activa-validation.js";
 
 export type ReturnUpdatePausaActiva = Partial<{
     nombre: string;
@@ -7,6 +8,7 @@ export type ReturnUpdatePausaActiva = Partial<{
     duracionMinutos: number;
     intensidad: "baja" | "media" | "alta";
     activo: boolean;
+    categoriaId: number;
 }>;
 
 type ValidationUpdatePausa = {
@@ -18,30 +20,49 @@ const updateSchema = joi.object({
     nombre: joi.string()
         .trim()
         .min(3)
-        .pattern(/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/)
+        .max(100)
+        .pattern(NOMBRE_PAUSA)
         .messages({
             "string.base": "El nombre debe ser un texto",
-            "string.min": "El nombre debe tener al menos 3 caracteres",
+            "string.empty": "El nombre no puede estar vacío",
+            "string.min": "El nombre debe tener entre 3 y 100 caracteres",
+            "string.max": "El nombre debe tener entre 3 y 100 caracteres",
+            "string.pattern.base": "El nombre solo puede contener letras, números, espacios y los signos . , ( ) -",
         }),
 
     descripcion: joi.string()
+        .trim()
+        .max(1000)
         .allow("")
         .messages({
             "string.base": "La descripción debe ser un texto",
+            "string.max": "La descripción debe tener máximo 1000 caracteres",
         }),
 
     duracionMinutos: joi.number()
         .integer()
-        .positive()
+        .min(1)
+        .max(30)
         .messages({
             "number.base": "La duración debe ser un número",
-            "number.positive": "La duración debe ser mayor a 0",
+            "number.integer": "La duración debe ser un número entero",
+            "number.min": "La duración debe estar entre 1 y 30 minutos",
+            "number.max": "La duración debe estar entre 1 y 30 minutos",
         }),
 
     intensidad: joi.string()
         .valid("baja", "media", "alta")
         .messages({
             "any.only": "La intensidad debe ser 'baja', 'media' o 'alta'",
+        }),
+
+    categoriaId: joi.number()
+        .integer()
+        .positive()
+        .messages({
+            "number.base": "categoriaId debe ser un número",
+            "number.integer": "categoriaId debe ser un número entero",
+            "number.positive": "categoriaId debe ser mayor a 0",
         }),
 
     activo: joi.boolean()
@@ -66,8 +87,7 @@ export const loadUpdatePausaActiva = (data: any): ReturnUpdatePausaActiva => {
     const result = validateUpdatePausaActiva(data);
 
     if (result.error) {
-        const messages = result.error.details.map(d => d.message).join(", ");
-        throw new ValidationError(messages);
+        throw validationErrorFrom(result.error);
     }
 
     return result.value;

@@ -15,4 +15,7 @@ export interface HistorialPort {
     getHistorialByPausaId(pausaId: number): Promise<HistorialActividad[]>;
 
     deleteHistorial(id: number): Promise<boolean>;
+
+    // Pausas completadas por un usuario entre dos fechas (YYYY-MM-DD, ambas incluidas)
+    countCompletadasEnRango(usuarioId: number, desde: string, hasta: string): Promise<number>;
 }

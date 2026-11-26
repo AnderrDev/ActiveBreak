@@ -1,24 +1,28 @@
-# Ambiente local de ActiveBreak: API (con recarga automática) + PostgreSQL.
-# Los valores se leen del .env de la raíz; si faltan se usan los valores por defecto.
-#   docker compose up --build      -> levanta todo
-#   docker compose down            -> detiene (los datos se conservan)
-#   docker compose down -v         -> detiene y borra la base de datos
-
-name: activebreak
+# ActiveBreak con Docker Compose: base de datos PostgreSQL + backend.
+#
+#   docker compose up --build    -> construye la imagen del backend y levanta todo
+#   docker compose up -d         -> levanta en segundo plano
+#   docker compose down          -> detiene y elimina los contenedores (los datos se conservan)
+#   docker compose down -v       -> además borra la base de datos (se vuelve a crear con database/init)
+#
+# Los valores se leen del archivo .env de la raíz (ver .env.example).
 
 services:
   db:
     image: postgres:16-alpine
+    container_name: activebreak-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-activebreak}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-activebreak}
       POSTGRES_DB: ${DB_NAME:-activebreak}
     ports:
-      # Puerto del host distinto a 5432 para no chocar con un PostgreSQL local.
-      # Solo en 127.0.0.1: la BD de desarrollo (con contraseña por defecto) no queda expuesta en la red.
+      # Puerto de tu máquina : puerto del contenedor. Solo en 127.0.0.1 para no exponer la BD en la red.
       - "127.0.0.1:${DB_PORT_HOST:-5433}:5432"
     volumes:
+      # Scripts que crean las tablas y los datos iniciales (solo la primera vez)
+      - ./database/init:/docker-entrypoint-initdb.d
+      # Datos de la base (sobreviven a docker compose down)
       - db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -26,30 +30,29 @@ services:
       timeout: 5s
       retries: 10
 
-  api:
-    build:
-      context: .
-      target: dev
-    restart: unless-stopped
+  backend:
+    # Con "build" se construye en local; con "image" se descarga de Docker Hub (docker compose pull backend)
+    build: .
+    image: ${DOCKERHUB_USUARIO:-activebreak}/activebreak-backend:latest
+    container_name: activebreak-backend
+    restart: on-failure
     depends_on:
       db:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       PORT: 3000
-      # Dentro de la red de Docker la BD se llama "db" y escucha en 5432
+      # Dentro de la red de Docker la BD se llama "db" (nombre del servicio) y escucha en 5432
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-activebreak}
       DB_PASSWORD: ${DB_PASSWORD:-activebreak}
       DB_NAME: ${DB_NAME:-activebreak}
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio (mínimo 32 caracteres), defínelo en .env}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env (mínimo 32 caracteres)}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       TRUST_PROXY: ${TRUST_PROXY:-0}
     ports:
       - "${API_PORT_HOST:-3000}:3000"
-    volumes:
-      # Monta el código para que nodemon recargue al guardar
-      - ./src:/app/src
 
 volumes:
   db-data:

@@ -2,7 +2,7 @@ import { Repository } from "typeorm";
 import { PausaActiva as PausaDomain } from "../../domain/PausaActiva.js";
 import { PausaActiva as PausaEntity } from "../entities/PausaActiva.js";
 import { AppDataSource } from "../config/data-base.js";
-import { PausaActivaPort } from "../../domain/PausaActivaPort.js";
+import { FiltrosCatalogo, PausaActivaPort } from "../../domain/PausaActivaPort.js";
 
 export class PausaActivaAdapter implements PausaActivaPort {
 
@@ -26,6 +26,10 @@ export class PausaActivaAdapter implements PausaActivaPort {
             domain.descripcion = pausa.descripcion;
         }
 
+        if (pausa.categoria_id !== null) {
+            domain.categoriaId = pausa.categoria_id;
+        }
+
         return domain;
     }
 
@@ -36,6 +40,7 @@ export class PausaActivaAdapter implements PausaActivaPort {
         entity.descripcion = pausa.descripcion ?? null;
         entity.duracion_minutos = pausa.duracionMinutos;
         entity.intensidad = pausa.intensidad;
+        entity.categoria_id = pausa.categoriaId ?? null;
         entity.activo = pausa.activo;
 
         return entity;
@@ -57,6 +62,7 @@ export class PausaActivaAdapter implements PausaActivaPort {
             descripcion: pausa.descripcion ?? existing.descripcion,
             duracion_minutos: pausa.duracionMinutos ?? existing.duracion_minutos,
             intensidad: pausa.intensidad ?? existing.intensidad,
+            categoria_id: pausa.categoriaId ?? existing.categoria_id,
             activo: pausa.activo ?? existing.activo,
         });
 
@@ -88,13 +94,28 @@ export class PausaActivaAdapter implements PausaActivaPort {
 
         return pausas.map(p => this.toDomain(p));
     }
-    async getActivasPausaActiva(): Promise<PausaDomain[]> {
+    async getActivasPausaActiva(filtros: FiltrosCatalogo = {}): Promise<PausaDomain[]> {
 
-        const pausas = await this.pausaRepository.find({
-            where: { activo: true },
-            order: { id: "ASC" }
-        });
+        const query = this.pausaRepository
+            .createQueryBuilder("p")
+            .where("p.activo = true")
+            .orderBy("p.id", "ASC");
 
+        if (filtros.categoriaId !== undefined) {
+            query.andWhere("p.categoria_id = :categoriaId", { categoriaId: filtros.categoriaId });
+        }
+        if (filtros.intensidad !== undefined) {
+            query.andWhere("p.intensidad = :intensidad", { intensidad: filtros.intensidad });
+        }
+        if (filtros.duracionMax !== undefined) {
+            query.andWhere("p.duracion_minutos <= :duracionMax", { duracionMax: filtros.duracionMax });
+        }
+
+        const pausas = await query.getMany();
         return pausas.map(p => this.toDomain(p));
+    }
+
+    async countActivasByCategoria(categoriaId: number): Promise<number> {
+        return this.pausaRepository.count({ where: { categoria_id: categoriaId, activo: true } });
     }
 }

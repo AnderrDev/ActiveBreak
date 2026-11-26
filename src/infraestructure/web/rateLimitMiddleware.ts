@@ -12,7 +12,7 @@ export const loginLimiter = rateLimit({
     skipSuccessfulRequests: true,
     standardHeaders: "draft-8",
     legacyHeaders: false,
-    message: { error: "Demasiados intentos de inicio de sesión. Inténtalo de nuevo en 15 minutos" },
+    message: { success: false, message: "Demasiados intentos de inicio de sesión. Inténtalo de nuevo en 15 minutos", errors: [] },
 });
 
 // Registro: 20 cuentas nuevas por IP cada hora
@@ -21,5 +21,5 @@ export const registerLimiter = rateLimit({
     limit: 20,
     standardHeaders: "draft-8",
     legacyHeaders: false,
-    message: { error: "Demasiados registros desde esta IP. Inténtalo de nuevo más tarde" },
+    message: { success: false, message: "Demasiados registros desde esta IP. Inténtalo de nuevo más tarde", errors: [] },
 });

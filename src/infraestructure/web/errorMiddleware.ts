@@ -1,4 +1,5 @@
 // Manejo centralizado de errores: traduce errores de dominio a respuestas HTTP
+// con el formato estándar { success: false, message, errors } (ver web/response.ts)
 // y evita filtrar detalles internos (BD, stack) al cliente.
 import { Request, Response, NextFunction } from "express";
 import { QueryFailedError } from "typeorm";
@@ -10,6 +11,7 @@ import {
     UnauthorizedError,
     ValidationError
 } from "../../domain/errors.js";
+import { fail } from "./response.js";
 
 const statusFor = (error: DomainError): number => {
     if (error instanceof ValidationError) return 400;
@@ -26,7 +28,7 @@ const PG_FOREIGN_KEY_VIOLATION = "23503";
 
 // Rutas que no existen
 export function notFoundHandler(req: Request, res: Response): void {
-    res.status(404).json({ error: "Ruta no encontrada" });
+    fail(res, 404, "Ruta no encontrada");
 }
 
 // Debe registrarse después de todas las rutas (Express lo reconoce por sus 4 parámetros)
@@ -37,7 +39,8 @@ export function errorHandler(error: unknown, req: Request, res: Response, next: 
     }
 
     if (error instanceof DomainError) {
-        res.status(statusFor(error)).json({ error: error.message });
+        const errores = error instanceof ValidationError ? error.errores : [];
+        fail(res, statusFor(error), error.message, errores);
         return;
     }
 
@@ -45,11 +48,11 @@ export function errorHandler(error: unknown, req: Request, res: Response, next: 
     if (error instanceof QueryFailedError) {
         const code = (error.driverError as { code?: string } | undefined)?.code;
         if (code === PG_UNIQUE_VIOLATION) {
-            res.status(409).json({ error: "El registro ya existe" });
+            fail(res, 409, "El registro ya existe");
             return;
         }
         if (code === PG_FOREIGN_KEY_VIOLATION) {
-            res.status(400).json({ error: "El registro hace referencia a datos inexistentes" });
+            fail(res, 400, "El registro hace referencia a datos inexistentes");
             return;
         }
     }
@@ -57,11 +60,11 @@ export function errorHandler(error: unknown, req: Request, res: Response, next: 
     // Errores del parser de JSON de Express (cuerpo mal formado, demasiado grande, etc.)
     const status = (error as { status?: unknown } | null)?.status;
     if (typeof status === "number" && status >= 400 && status < 500) {
-        res.status(status).json({ error: "Petición inválida" });
+        fail(res, status, "Petición inválida: el cuerpo debe ser un JSON válido de máximo 100 kb");
         return;
     }
 
     // Cualquier otro error es interno: se registra en el servidor y no se expone
     console.error("Error no controlado:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    fail(res, 500, "Error interno del servidor");
 }

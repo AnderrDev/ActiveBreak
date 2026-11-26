@@ -9,21 +9,28 @@ import { HistorialPort } from "../domain/HistorialPort.js";
 import { UserPort } from "../domain/UserPort.js";
 import { PausaActivaPort } from "../domain/PausaActivaPort.js";
 import { NotFoundError, ValidationError } from "../domain/errors.js";
+import { MetaApplication } from "./MetaApplication.js";
+
+// Tolerancia para la hora del dispositivo al validar fechas futuras
+const TOLERANCIA_FUTURO_MS = 60 * 1000;
 
 export class HistorialApplication {
 
     private port: HistorialPort;
     private userPort: UserPort;
     private pausaPort: PausaActivaPort;
+    private metas: MetaApplication; // el estado de las metas se recalcula con cada registro
 
     constructor(
         port: HistorialPort,
         userPort: UserPort,
-        pausaPort: PausaActivaPort
+        pausaPort: PausaActivaPort,
+        metas: MetaApplication
     ) {
         this.port = port;
         this.userPort = userPort;
         this.pausaPort = pausaPort;
+        this.metas = metas;
     }
 
     async createHistorial(historial: Omit<HistorialActividad, "id">): Promise<number> {
@@ -49,6 +56,10 @@ export class HistorialApplication {
         }
 
         // validaciones de negocio
+        if (historial.fechaHora.getTime() > Date.now() + TOLERANCIA_FUTURO_MS) {
+            throw new ValidationError("No se aceptan registros con fecha futura");
+        }
+
         if (historial.duracionReal < 0) {
             throw new ValidationError("La duración real no puede ser negativa");
         }
@@ -63,7 +74,9 @@ export class HistorialApplication {
             throw new ValidationError("No puede haber duración si no se completó la actividad");
         }
 
-        return this.port.createHistorial(historial);
+        const id = await this.port.createHistorial(historial);
+        await this.metas.recalcularMetasDeUsuario(historial.usuarioId);
+        return id;
     }
 
     async getHistorialById(id: number): Promise<HistorialActividad | null> {
@@ -101,6 +114,8 @@ export class HistorialApplication {
             throw new NotFoundError("El historial no existe");
         }
 
-        return this.port.deleteHistorial(id);
+        const deleted = await this.port.deleteHistorial(id);
+        await this.metas.recalcularMetasDeUsuario(existing.usuarioId);
+        return deleted;
     }
 }
